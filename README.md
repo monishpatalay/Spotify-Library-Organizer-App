@@ -29,13 +29,19 @@ Turn your messy Spotify Liked Songs into clean, themed playlists with one natura
 ## Project Structure
 
 ```
-/client     Active React + TypeScript frontend (Vite) — dev server on :5173
-/server     Active Node.js + Express + TypeScript backend — dev server on :3001
-/frontend   Legacy frontend (unused, kept for reference)
-/backend    Legacy backend (unused, kept for reference)
+/client         Active React + TypeScript frontend (Vite) — dev server on :5173
+/client/api     The Express API, deployed as a Vercel serverless function at /api/*
+/server         Dev-only launcher that runs the same API locally on :3001
+/frontend       Legacy frontend (unused, kept for reference)
+/backend        Legacy backend (unused, kept for reference)
 ```
 
-Only `client/` and `server/` are used by the `npm run dev` / `npm run install:all` scripts below. `frontend/` and `backend/` are an earlier iteration of the app and are not wired into the current build.
+The API lives in `client/api/_lib/` because Vercel only bundles files under the
+project's root directory (`client`). `client/api/index.ts` mounts it as a
+serverless function, and `server/` starts the identical app for local
+development — there is one copy of the backend, not two.
+
+`frontend/` and `backend/` are an earlier iteration of the app and are not wired into the current build.
 
 ---
 
@@ -108,7 +114,26 @@ npm run dev
 
 Then open [http://localhost:5173](http://localhost:5173) in your browser.
 
-There is no hosted deployment for this project — it's currently run locally, since Spotify OAuth apps in Development Mode are restricted to a fixed set of allow-listed Spotify accounts and redirect URIs.
+## Deployment
+
+The app is deployed on Vercel at **https://spotify.monishpatalay.dev**, with the
+SPA and the API served from the same origin (so no CORS is involved in
+production). Pushing to `main` deploys.
+
+The API reads its configuration from Vercel project environment variables:
+
+| Variable | Value |
+|---|---|
+| `SPOTIFY_CLIENT_ID` | from the Spotify dashboard |
+| `SPOTIFY_CLIENT_SECRET` | from the Spotify dashboard |
+| `SPOTIFY_REDIRECT_URI` | `https://spotify.monishpatalay.dev/api/auth/callback` |
+| `FRONTEND_URL` | `https://spotify.monishpatalay.dev` |
+| `ANTHROPIC_API_KEY` | optional |
+| `LASTFM_API_KEY` | optional |
+
+The same redirect URI must also be registered in the Spotify Developer
+Dashboard. Note that while the Spotify app is in Development Mode, only
+allow-listed Spotify accounts can log in, even on the public URL.
 
 ---
 
