@@ -1,6 +1,8 @@
 import React from 'react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001';
+// Same-origin: Vercel serves the API at /api/* in production, and Vite proxies
+// /api to the local Express server in dev (see vite.config.ts).
+const API_BASE = '';
 
 const FEATURES = [
   { icon: '⚡', title: 'Instant Scan', desc: 'Fetch every liked song in seconds — no matter how massive your library.', color: '#22d3ee' },

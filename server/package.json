@@ -3,9 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "dev": "nodemon --watch src --watch ../client/api/_lib --ext ts --exec tsx src/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.109.0",
@@ -20,7 +18,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.16",
     "nodemon": "^3.0.3",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.23.13",
     "typescript": "^5.3.3"
   }
 }

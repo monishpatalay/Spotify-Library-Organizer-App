@@ -1,6 +1,8 @@
 import { Track } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001';
+// Same-origin: Vercel serves the API at /api/* in production, and Vite proxies
+// /api to the local Express server in dev (see vite.config.ts).
+const API_BASE = '';
 
 // Calls the server which fetches lyrics from lyrics.ovh and runs franc ML
 // Returns trackId → detected language (null if lyrics unavailable or undetermined)

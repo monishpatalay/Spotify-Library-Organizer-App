@@ -10,7 +10,12 @@ const router = Router();
 
 interface CacheEntry { moods: string[]; language: string | null; }
 
-const CACHE_FILE = path.join(__dirname, '../../data/ai_cache.json');
+// Vercel's filesystem is read-only apart from /tmp, which is per-container and
+// ephemeral — the cache still avoids re-classifying within a warm container,
+// and every miss falls through to Claude as normal.
+const CACHE_FILE = process.env.VERCEL
+  ? path.join('/tmp', 'ai_cache.json')
+  : path.join(__dirname, '../../../../server/data/ai_cache.json');
 
 function readCache(): Record<string, CacheEntry> {
   try {

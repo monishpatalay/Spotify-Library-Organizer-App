@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
 
-// franc@5 is CommonJS
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const franc = require('franc') as (text: string, opts?: { minLength?: number }) => string;
+// franc@5 is CommonJS. A static import (not require) is required here: this file
+// is bundled as ESM in the Vercel function, where `require` is not defined.
+// Types come from ../franc.d.ts.
+import franc from 'franc';
 
 const router = Router();
 
