@@ -53,7 +53,7 @@ development — there is one copy of the backend, not two.
 2. Click **Create App**
 3. Fill in:
    - App name: `Spotify Library Organizer` (or anything you like)
-   - Redirect URI: `http://localhost:3001/api/auth/callback`
+   - Redirect URI: `http://127.0.0.1:3001/api/auth/callback`
 4. Go to **Settings → User Management** and add your Spotify email address (required while the app is in Development Mode)
 5. Copy your **Client ID** and **Client Secret**
 
@@ -72,7 +72,7 @@ Edit `server/.env`:
 ```env
 SPOTIFY_CLIENT_ID=your_client_id_here
 SPOTIFY_CLIENT_SECRET=your_client_secret_here
-SPOTIFY_REDIRECT_URI=http://localhost:3001/api/auth/callback
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:3001/api/auth/callback
 FRONTEND_URL=http://localhost:5173
 PORT=3001
 
