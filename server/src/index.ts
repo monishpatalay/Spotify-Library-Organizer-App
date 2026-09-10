@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { createApp } from '../../client/api/_lib/app';
+import { createApp } from '../../client/api/_lib/app.js';
 
 // Local dev only. In production the same Express app runs as a Vercel
 // serverless function at /api/* (see client/api/[...path].ts).

@@ -1,10 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import authRoutes from './routes/auth';
-import spotifyRoutes from './routes/spotify';
-import lastfmRoutes from './routes/lastfm';
-import classifyRoutes from './routes/classify';
-import aiRoutes from './routes/ai';
+import authRoutes from './routes/auth.js';
+import spotifyRoutes from './routes/spotify.js';
+import lastfmRoutes from './routes/lastfm.js';
+import classifyRoutes from './routes/classify.js';
+import aiRoutes from './routes/ai.js';
 
 // Shared Express app. Mounted as a Vercel serverless function in production
 // (see ../[...path].ts) and started by a local dev server (see server/src/index.ts).

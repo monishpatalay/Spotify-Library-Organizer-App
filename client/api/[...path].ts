@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createApp } from './_lib/app';
+import { createApp } from './_lib/app.js';
 
 // Catch-all Vercel serverless function: this file maps to /api/*, so every
 // request under /api reaches the Express app with its original URL intact.

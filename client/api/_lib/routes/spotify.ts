@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { extractToken } from '../middleware/tokenRefresh';
-import { createSpotifyClient } from '../utils/spotifyClient';
+import { extractToken } from '../middleware/tokenRefresh.js';
+import { createSpotifyClient } from '../utils/spotifyClient.js';
 
 const router = Router();
 
