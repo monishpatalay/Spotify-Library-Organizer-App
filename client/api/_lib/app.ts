@@ -32,15 +32,6 @@ export function createApp() {
 
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
-  app.get('/api/debug', (_req, res) => {
-    res.json({
-      clientIdSet: !!process.env.SPOTIFY_CLIENT_ID,
-      clientIdPrefix: process.env.SPOTIFY_CLIENT_ID?.slice(0, 8),
-      redirectUri: process.env.SPOTIFY_REDIRECT_URI,
-      frontendUrl: process.env.FRONTEND_URL,
-    });
-  });
-
   return app;
 }
 

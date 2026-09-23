@@ -1,9 +1,13 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
+import { requireSpotifyUser } from '../middleware/tokenRefresh.js';
 
 const router = Router();
+router.use(requireSpotifyUser);
+
 const LASTFM_BASE = 'http://ws.audioscrobbler.com/2.0/';
 const BATCH = 10; // concurrent requests per wave
+const MAX_TRACKS = 100; // per request; the client sends larger libraries in chunks
 
 interface TrackInput { id: string; artist: string; track: string; }
 
@@ -41,6 +45,14 @@ router.post('/tags/batch', async (req: Request, res: Response) => {
   const tracks: TrackInput[] = req.body?.tracks ?? [];
   if (!Array.isArray(tracks) || tracks.length === 0) {
     res.status(400).json({ error: 'tracks array is required' });
+    return;
+  }
+  if (tracks.length > MAX_TRACKS) {
+    res.status(400).json({ error: `at most ${MAX_TRACKS} tracks are allowed` });
+    return;
+  }
+  if (tracks.some((t) => !t || typeof t.id !== 'string' || typeof t.artist !== 'string' || typeof t.track !== 'string')) {
+    res.status(400).json({ error: 'invalid track data' });
     return;
   }
 

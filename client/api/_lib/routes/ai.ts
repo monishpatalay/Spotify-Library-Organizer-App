@@ -246,10 +246,6 @@ interface ClassifyInput {
   name: string;
   artist: string;
   album?: string;
-  valence?: number;
-  energy?: number;
-  danceability?: number;
-  tempo?: number;
   tags?: string[];
 }
 
@@ -305,19 +301,13 @@ If the song name OR Last.fm tags contain ANY of these → add "romantic" to the 
   Punjabi: mahi, dildarian, ni main
 A romantic song CAN also be sad (e.g. a heartbreak ballad) or happy/party (upbeat love song).
 
-STEP 2 — AUDIO FEATURE RULES (check ALL, add every rule that matches):
-1. valence < 0.35 → add "sad"
-2. energy > 0.78 AND danceability > 0.68 → add "party"
-3. energy > 0.78 AND tempo > 128 → add "workout"
-4. energy > 0.75 AND not already in "party"/"workout" → add "energetic"
-5. valence > 0.62 AND energy > 0.55 → add "happy"
-6. valence > 0.38 AND energy < 0.65 AND danceability < 0.7 → add "romantic" (if not already)
-7. energy < 0.45 AND not already in other moods → add "chill"
-8. If NOTHING matched yet → ["chill"]
+STEP 2 — FEEL OF THE SONG: use the Last.fm tags plus what you know of the song and artist
+(tempo, energy, lyrics, how it is normally listened to) and add every mood that genuinely fits.
+Do not default to "chill" — use it only for songs that really are calm or soft.
 
-Dedup the list. Keep max 3 moods, strongest fit first. Use song/artist knowledge too.
+Dedup the list. Keep max 3 moods, strongest fit first.
 Examples:
-  "Kal Ho Naa Ho" (love + bittersweet valence ~0.3) → ["romantic", "sad"]
+  "Kal Ho Naa Ho" (love + bittersweet) → ["romantic", "sad"]
   "Chaiyya Chaiyya" (high energy dance, spiritual) → ["party", "energetic", "happy"]
   "Tujh Mein Rab Dikhta Hai" (soft love, low energy) → ["romantic", "chill"]
   "Blinding Lights" (upbeat, energetic, slight romance) → ["energetic", "happy", "romantic"]
@@ -355,19 +345,13 @@ async function classifyBatch(
   batch: ClassifyInput[]
 ): Promise<Record<string, ClassifyResult>> {
   const songList = batch.map((s) => {
-    const af = [
-      s.valence != null ? `v:${s.valence.toFixed(2)}` : '',
-      s.energy != null ? `e:${s.energy.toFixed(2)}` : '',
-      s.danceability != null ? `d:${s.danceability.toFixed(2)}` : '',
-      s.tempo != null ? `t:${Math.round(s.tempo)}` : '',
-    ].filter(Boolean).join(' ');
     const tags = s.tags?.slice(0, 5).join(',') ?? '';
-    return `${s.id}|${s.name}|${s.artist}|${s.album ?? ''}|${af || 'no-af'}|${tags}`;
+    return `${s.id}|${s.name}|${s.artist}|${s.album ?? ''}|${tags}`;
   }).join('\n');
 
   const raw = await generateJson(
     CLASSIFY_SYSTEM,
-    `Classify (id|name|artist|album|audio|tags):\n${songList}`,
+    `Classify (id|name|artist|album|tags):\n${songList}`,
     4096
   );
   const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
@@ -376,7 +360,7 @@ async function classifyBatch(
 
 // ─── POST /api/ai/classify ────────────────────────────────────────────────────
 // Returns cached results immediately; only calls Gemini for uncached tracks.
-// Body:  { tracks: [{id, name, artist, album, valence, energy, danceability, tempo, tags}] }
+// Body:  { tracks: [{id, name, artist, album, tags}] }
 // Returns: { results: Record<id, { mood, language }>, cached: number, classified: number, failed: number }
 
 router.post('/classify', async (req: Request, res: Response) => {

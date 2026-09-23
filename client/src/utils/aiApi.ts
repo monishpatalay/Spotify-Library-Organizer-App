@@ -55,10 +55,6 @@ export async function aiClassify(
         name: t.name,
         artist: t.artists[0] ?? '',
         album: t.album,
-        valence: t.audioFeatures?.valence,
-        energy: t.audioFeatures?.energy,
-        danceability: t.audioFeatures?.danceability,
-        tempo: t.audioFeatures?.tempo,
         tags: t.lastfmTags?.slice(0, 8),
       }));
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Track } from '../types';
-import { fetchAllLikedSongs, fetchAudioFeatures } from '../utils/spotifyApi';
+import { fetchAllLikedSongs } from '../utils/spotifyApi';
 import { fetchLastFmTags } from '../utils/lastfmApi';
 import { classifyTrackLanguages } from '../utils/classifyApi';
 import { aiClassify } from '../utils/aiApi';
@@ -124,18 +124,12 @@ export function useLikedSongs() {
         setProgress({ fetched, total });
       });
 
-      // Spotify audio features (valence, energy, danceability, tempo) — AI mood fallback
-      const afMap = await fetchAudioFeatures(results.map((t) => t.id));
-      const withAF = results.map((t) =>
-        afMap[t.id] ? { ...t, audioFeatures: afMap[t.id] } : t
-      );
-
-      setTracksBase(withAF);
-      setTracks(withAF);
+      setTracksBase(results);
+      setTracks(results);
       setScanned(true);
-      saveCache(withAF, false);
+      saveCache(results, false);
       setLoading(false);
-      await loadMoodTags(withAF);
+      await loadMoodTags(results);
     } catch (e: any) {
       setError(e.message ?? 'Failed to scan liked songs');
       setLoading(false);

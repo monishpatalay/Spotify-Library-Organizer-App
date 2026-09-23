@@ -19,23 +19,6 @@ router.get('/me', extractToken, async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/spotify/audio-features?ids=id1,id2,...  (max 100 ids per call)
-router.get('/audio-features', extractToken, async (req: Request, res: Response) => {
-  const token = (req as any).accessToken as string;
-  const ids = req.query.ids as string;
-  if (!ids) { res.status(400).json({ error: 'ids parameter required' }); return; }
-  try {
-    const client = createSpotifyClient(token);
-    const { data } = await client.get('/audio-features', { params: { ids } });
-    res.json(data);
-  } catch (err: any) {
-    const status = err?.response?.status ?? 500;
-    const retryAfter = err?.response?.headers?.['retry-after'];
-    if (retryAfter) res.set('Retry-After', String(retryAfter));
-    res.status(status).json({ error: err?.response?.data ?? err.message });
-  }
-});
-
 // GET /api/spotify/liked-songs?limit=50&offset=0
 router.get('/liked-songs', extractToken, async (req: Request, res: Response) => {
   const token = (req as any).accessToken as string;

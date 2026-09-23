@@ -5,8 +5,13 @@ import axios from 'axios';
 // is bundled as ESM in the Vercel function, where `require` is not defined.
 // Types come from ../franc.d.ts.
 import franc from 'franc';
+import { requireSpotifyUser } from '../middleware/tokenRefresh.js';
 
 const router = Router();
+router.use(requireSpotifyUser);
+
+// Each lyrics lookup can take up to 5s, so keep requests small; the client sends chunks.
+const MAX_TRACKS = 50;
 
 // ISO 639-3 codes franc returns → our language keys
 const FRANC_TO_LANG: Record<string, string> = {
@@ -55,6 +60,14 @@ router.post('/language', async (req: Request, res: Response) => {
   const tracks: { id: string; artist: string; title: string }[] = req.body?.tracks ?? [];
   if (!Array.isArray(tracks) || tracks.length === 0) {
     res.status(400).json({ error: 'tracks array required' });
+    return;
+  }
+  if (tracks.length > MAX_TRACKS) {
+    res.status(400).json({ error: `at most ${MAX_TRACKS} tracks are allowed` });
+    return;
+  }
+  if (tracks.some((t) => !t || typeof t.id !== 'string' || typeof t.artist !== 'string' || typeof t.title !== 'string')) {
+    res.status(400).json({ error: 'invalid track data' });
     return;
   }
 

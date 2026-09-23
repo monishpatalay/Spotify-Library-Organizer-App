@@ -350,3 +350,23 @@ test('TrackCard tag resolution suppresses fallbacks during active tag loading', 
   const fallbackLang3 = !hasAiTags3 && !false ? getTrackLanguage(track315) : null;
   assert.equal(fallbackLang3, 'punjabi');
 });
+
+test('Last.fm and language routes require a Spotify login; debug and audio-features routes are gone', async () => {
+  const { createApp } = require('../client/api/_lib/app.ts');
+  const server = createApp().listen(0);
+  const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+  const post = (path: string) => fetch(base + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tracks: [{ id: 'a', artist: 'x', track: 'y', title: 'y' }] }),
+  });
+
+  try {
+    assert.equal((await post('/api/lastfm/tags/batch')).status, 401);
+    assert.equal((await post('/api/classify/language')).status, 401);
+    assert.equal((await fetch(`${base}/api/debug`)).status, 404);
+    assert.equal((await fetch(`${base}/api/spotify/audio-features?ids=a`)).status, 404);
+  } finally {
+    server.close();
+  }
+});

@@ -1,4 +1,5 @@
 import { Track } from '../types';
+import { apiFetch } from './spotifyApi';
 
 // Same-origin: Vercel serves the API at /api/* in production, and Vite proxies
 // /api to the local Express server in dev (see vite.config.ts).
@@ -39,26 +40,29 @@ export function tagsMatchMood(tags: string[], mood: string): boolean {
   );
 }
 
+// The server accepts at most 100 tracks per request, so send big libraries in chunks.
+// A failed chunk just leaves its tracks without tags.
+const CHUNK = 100;
+
 export async function fetchLastFmTags(
   tracks: Track[]
 ): Promise<Record<string, string[]>> {
-  if (tracks.length === 0) return {};
-  try {
-    const res = await fetch(`${API_BASE}/api/lastfm/tags/batch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tracks: tracks.map((t) => ({
-          id: t.id,
-          artist: t.artists[0] ?? '',
-          track: t.name,
-        })),
-      }),
-    });
-    if (!res.ok) return {};
-    const data = await res.json();
-    return data.tags ?? {};
-  } catch {
-    return {};
+  const tags: Record<string, string[]> = {};
+  for (let i = 0; i < tracks.length; i += CHUNK) {
+    try {
+      const res = await apiFetch(`${API_BASE}/api/lastfm/tags/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tracks: tracks.slice(i, i + CHUNK).map((t) => ({
+            id: t.id,
+            artist: t.artists[0] ?? '',
+            track: t.name,
+          })),
+        }),
+      });
+      if (res.ok) Object.assign(tags, (await res.json()).tags ?? {});
+    } catch { /* skip failed chunk */ }
   }
+  return tags;
 }

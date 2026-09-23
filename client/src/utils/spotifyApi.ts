@@ -1,4 +1,4 @@
-import { Track, SpotifyUser, AudioFeatures } from '../types';
+import { Track, SpotifyUser } from '../types';
 
 // Same-origin: Vercel serves the API at /api/* in production, and Vite proxies
 // /api to the local Express server in dev (see vite.config.ts).
@@ -122,26 +122,6 @@ export async function fetchAllLikedSongs(
   } while (rawFetched < total);
 
   return allTracks;
-}
-
-// Fetch audio features for up to N tracks in batches of 100.
-// Returns a map of trackId → AudioFeatures. Gracefully skips failed batches.
-export async function fetchAudioFeatures(
-  trackIds: string[]
-): Promise<Record<string, AudioFeatures>> {
-  const result: Record<string, AudioFeatures> = {};
-  for (let i = 0; i < trackIds.length; i += 100) {
-    const batch = trackIds.slice(i, i + 100).join(',');
-    try {
-      const res = await apiFetch(`/api/spotify/audio-features?ids=${batch}`, {}, 0);
-      if (!res.ok) continue;
-      const data = await res.json();
-      for (const af of (data.audio_features ?? [])) {
-        if (af?.id) result[af.id] = af as AudioFeatures;
-      }
-    } catch { /* skip failed batch silently */ }
-  }
-  return result;
 }
 
 export async function createPlaylist(
