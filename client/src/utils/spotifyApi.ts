@@ -3,6 +3,7 @@ import { Track, SpotifyUser } from '../types';
 // Same-origin: Vercel serves the API at /api/* in production, and Vite proxies
 // /api to the local Express server in dev (see vite.config.ts).
 const API_BASE = '';
+const MAX_RETRY_WAIT_S = 30;
 
 function getAccessToken(): string | null {
   return localStorage.getItem('spotify_access_token');
@@ -37,9 +38,11 @@ export async function apiFetch(
   };
   let res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
-  // Auto-retry on 429 — respect Retry-After header, default 10s
-  if (res.status === 429 && retries > 0) {
-    const wait = parseInt(res.headers.get('Retry-After') ?? '10', 10) * 1000;
+  // Auto-retry on 429 — respect Retry-After (default 10s), but only up to 30s:
+  // beyond that, return the 429 so the UI shows an error instead of hanging.
+  const retryAfter = parseInt(res.headers.get('Retry-After') ?? '10', 10);
+  if (res.status === 429 && retries > 0 && retryAfter <= MAX_RETRY_WAIT_S) {
+    const wait = retryAfter * 1000;
     await new Promise((r) => setTimeout(r, wait));
     return apiFetch(path, options, retries - 1);
   }
