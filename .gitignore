@@ -18,3 +18,5 @@ server/.env
 .tokensave
 .claude
 .claude-flow
+test-results/
+playwright-report/

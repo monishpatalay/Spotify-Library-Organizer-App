@@ -10,9 +10,11 @@
     "install:legacy": "cd backend && npm install && cd ../frontend && npm install",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm start",
-    "test": "./server/node_modules/.bin/tsx --test tests/regression.test.ts"
+    "test": "./server/node_modules/.bin/tsx --test --test-timeout=30000 \"tests/**/*.test.ts\"",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.ts"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^8.2.2"
   }
 }
