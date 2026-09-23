@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
 import { requireSpotifyUser } from '../middleware/tokenRefresh.js';
+import { asyncRoute } from '../utils/asyncRoute.js';
 
 const router = Router();
 router.use(requireSpotifyUser);
@@ -35,7 +36,7 @@ async function getTagsForTrack(input: TrackInput, apiKey: string): Promise<strin
 // POST /api/lastfm/tags/batch
 // Body: { tracks: [{ id, artist, track }] }
 // Returns: { tags: Record<trackId, string[]> }
-router.post('/tags/batch', async (req: Request, res: Response) => {
+router.post('/tags/batch', asyncRoute(async (req: Request, res: Response) => {
   const apiKey = process.env.LASTFM_API_KEY;
   if (!apiKey) {
     res.status(503).json({ error: 'LASTFM_API_KEY not set in server environment' });
@@ -73,6 +74,6 @@ router.post('/tags/batch', async (req: Request, res: Response) => {
   }
 
   res.json({ tags: results });
-});
+}));
 
 export default router;

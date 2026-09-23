@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
+import { asyncRoute } from '../utils/asyncRoute.js';
 
 const router = Router();
 
@@ -36,7 +37,7 @@ router.get('/login', (_req: Request, res: Response) => {
 });
 
 // GET /api/auth/callback
-router.get('/callback', async (req: Request, res: Response) => {
+router.get('/callback', asyncRoute(async (req: Request, res: Response) => {
   const { clientId, clientSecret, redirectUri, frontendUrl } = cfg();
   const code = req.query.code as string | undefined;
   const error = req.query.error as string | undefined;
@@ -74,10 +75,10 @@ router.get('/callback', async (req: Request, res: Response) => {
     const msg = encodeURIComponent(JSON.stringify(spotifyError ?? err.message));
     res.redirect(`${frontendUrl}/?error=${msg}`);
   }
-});
+}));
 
 // POST /api/auth/refresh
-router.post('/refresh', async (req: Request, res: Response) => {
+router.post('/refresh', asyncRoute(async (req: Request, res: Response) => {
   const { clientId, clientSecret } = cfg();
   const { refresh_token } = req.body;
   if (!refresh_token) {
@@ -103,6 +104,6 @@ router.post('/refresh', async (req: Request, res: Response) => {
     console.error('Refresh error:', err?.response?.data ?? err.message);
     res.status(401).json({ error: 'Failed to refresh token' });
   }
-});
+}));
 
 export default router;

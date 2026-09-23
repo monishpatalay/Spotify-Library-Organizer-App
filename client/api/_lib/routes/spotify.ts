@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { extractToken } from '../middleware/tokenRefresh.js';
 import { createSpotifyClient } from '../utils/spotifyClient.js';
+import { asyncRoute } from '../utils/asyncRoute.js';
 
 const router = Router();
 
 // GET /api/spotify/me
-router.get('/me', extractToken, async (req: Request, res: Response) => {
+router.get('/me', extractToken, asyncRoute(async (req: Request, res: Response) => {
   const token = (req as any).accessToken as string;
   try {
     const client = createSpotifyClient(token);
@@ -17,10 +18,10 @@ router.get('/me', extractToken, async (req: Request, res: Response) => {
     if (retryAfter) res.set('Retry-After', String(retryAfter));
     res.status(status).json({ error: err?.response?.data ?? err.message });
   }
-});
+}));
 
 // GET /api/spotify/liked-songs?limit=50&offset=0
-router.get('/liked-songs', extractToken, async (req: Request, res: Response) => {
+router.get('/liked-songs', extractToken, asyncRoute(async (req: Request, res: Response) => {
   const token = (req as any).accessToken as string;
   const limit = Math.min(50, parseInt((req.query.limit as string) ?? '50', 10));
   const offset = parseInt((req.query.offset as string) ?? '0', 10);
@@ -33,10 +34,10 @@ router.get('/liked-songs', extractToken, async (req: Request, res: Response) => 
     const status = err?.response?.status ?? 500;
     res.status(status).json({ error: err?.response?.data ?? err.message });
   }
-});
+}));
 
 // POST /api/spotify/playlist
-router.post('/playlist', async (req: Request, res: Response) => {
+router.post('/playlist', asyncRoute(async (req: Request, res: Response) => {
   const { name, trackUris, accessToken } = req.body as {
     name: string;
     trackUris: string[];
@@ -45,6 +46,10 @@ router.post('/playlist', async (req: Request, res: Response) => {
 
   if (!name || !accessToken) {
     res.status(400).json({ error: 'name and accessToken are required' });
+    return;
+  }
+  if (trackUris !== undefined && !Array.isArray(trackUris)) {
+    res.status(400).json({ error: 'trackUris must be an array' });
     return;
   }
 
@@ -101,6 +106,6 @@ router.post('/playlist', async (req: Request, res: Response) => {
   }
 
   res.json({ playlistId, playlistUrl });
-});
+}));
 
 export default router;

@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { requireSpotifyUser } from '../middleware/tokenRefresh.js';
+import { asyncRoute } from '../utils/asyncRoute.js';
 
 const router = Router();
 
@@ -197,9 +198,9 @@ export function parsePromptResult(raw: string) {
   };
 }
 
-router.post('/parse-prompt', async (req: Request, res: Response) => {
-  const { prompt } = req.body as { prompt?: string };
-  if (!prompt?.trim()) { res.status(400).json({ error: 'prompt is required' }); return; }
+router.post('/parse-prompt', asyncRoute(async (req: Request, res: Response) => {
+  const { prompt } = req.body as { prompt?: unknown };
+  if (typeof prompt !== 'string' || !prompt.trim()) { res.status(400).json({ error: 'prompt is required' }); return; }
   if (prompt.length > 500) { res.status(400).json({ error: 'prompt is too long' }); return; }
 
   try {
@@ -237,7 +238,7 @@ Rules:
   } catch {
     res.status(500).json({ error: 'AI parse failed' });
   }
-});
+}));
 
 // ─── Classification ───────────────────────────────────────────────────────────
 
@@ -363,7 +364,7 @@ async function classifyBatch(
 // Body:  { tracks: [{id, name, artist, album, tags}] }
 // Returns: { results: Record<id, { mood, language }>, cached: number, classified: number, failed: number }
 
-router.post('/classify', async (req: Request, res: Response) => {
+router.post('/classify', asyncRoute(async (req: Request, res: Response) => {
   const tracks: ClassifyInput[] = req.body?.tracks ?? [];
   if (!Array.isArray(tracks) || tracks.length === 0) {
     res.status(400).json({ error: 'tracks array required' });
@@ -475,6 +476,6 @@ router.post('/classify', async (req: Request, res: Response) => {
     classified: classifiedCount,
     failed: 0,
   });
-});
+}));
 
 export default router;

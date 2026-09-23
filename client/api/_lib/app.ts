@@ -32,6 +32,15 @@ export function createApp() {
 
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
+  // Last stop for errors from routes (see utils/asyncRoute.ts) and body parsing.
+  // Keeps body-parser's 4xx statuses and never sends internal details to the client.
+  app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (res.headersSent) { next(err); return; }
+    const status = Number(err?.status ?? err?.statusCode) || 500;
+    if (status >= 500) console.error('Unhandled route error:', err);
+    res.status(status).json({ error: err?.expose ? err.message : 'Internal server error' });
+  });
+
   return app;
 }
 

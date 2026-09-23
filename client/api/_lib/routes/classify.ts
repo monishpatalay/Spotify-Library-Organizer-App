@@ -6,6 +6,7 @@ import axios from 'axios';
 // Types come from ../franc.d.ts.
 import franc from 'franc';
 import { requireSpotifyUser } from '../middleware/tokenRefresh.js';
+import { asyncRoute } from '../utils/asyncRoute.js';
 
 const router = Router();
 router.use(requireSpotifyUser);
@@ -56,7 +57,7 @@ async function fetchLyrics(artist: string, title: string): Promise<string | null
 // Body: { tracks: [{ id, artist, title }] }
 // Returns: { results: Record<id, string | null> }
 //   string = detected language key, null = could not determine
-router.post('/language', async (req: Request, res: Response) => {
+router.post('/language', asyncRoute(async (req: Request, res: Response) => {
   const tracks: { id: string; artist: string; title: string }[] = req.body?.tracks ?? [];
   if (!Array.isArray(tracks) || tracks.length === 0) {
     res.status(400).json({ error: 'tracks array required' });
@@ -108,6 +109,6 @@ router.post('/language', async (req: Request, res: Response) => {
   }
 
   res.json({ results });
-});
+}));
 
 export default router;
