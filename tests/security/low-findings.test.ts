@@ -1,7 +1,7 @@
 // Regression tests for the Low-severity findings in SECURITY_AUDIT.md (L1–L11).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { useTestApp } from '../helpers/mockHttp';
+import { useTestApp, newUser } from '../helpers/mockHttp';
 
 const ctx = useTestApp();
 
@@ -23,4 +23,11 @@ test('[L1] the OAuth callback logs neither the authorization code nor token mate
   for (const secret of ['one-time-code-123', 'another-code-456', 'user:alice', 'RT-xyz', 'secret-detail']) {
     assert.ok(!logs.text().includes(secret), `logged: ${secret}`);
   }
+});
+
+test('[L2] Last.fm is called over HTTPS (the API key travels in the query string)', async () => {
+  ctx.handler = (c) => c.url.includes('audioscrobbler') ? { status: 200, body: { toptags: { tag: [] } } } : undefined;
+  await ctx.app.post('/api/lastfm/tags/batch', { tracks: [{ id: 'a', artist: 'x', track: 'y' }] }, newUser());
+  const call = ctx.calls.find((c) => c.url.includes('audioscrobbler'))!;
+  assert.ok(call.url.startsWith('https://'), `Last.fm URL: ${call.url.replace(/api_key=[^&]+/, 'api_key=…')}`);
 });

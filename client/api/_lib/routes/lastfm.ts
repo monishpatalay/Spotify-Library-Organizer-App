@@ -6,7 +6,7 @@ import { asyncRoute } from '../utils/asyncRoute.js';
 const router = Router();
 router.use(requireSpotifyUser);
 
-const LASTFM_BASE = 'http://ws.audioscrobbler.com/2.0/';
+const LASTFM_BASE = 'https://ws.audioscrobbler.com/2.0/';
 const BATCH = 10; // concurrent requests per wave
 const MAX_TRACKS = 100; // per request; the client sends larger libraries in chunks
 
