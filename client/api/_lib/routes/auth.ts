@@ -63,7 +63,8 @@ router.get('/callback', asyncRoute(async (req: Request, res: Response) => {
   const code = req.query.code as string | undefined;
   const error = req.query.error as string | undefined;
 
-  console.log('Callback — error:', error, '| code:', code ? 'present' : 'missing', '| query:', req.query);
+  // Never log the query: the one-time code can be exchanged for tokens.
+  console.log('Callback — error:', error, '| code:', code ? 'present' : 'missing');
 
   const expectedState = readCookie(req, STATE_COOKIE);
   res.clearCookie(STATE_COOKIE, cookieOptions('/api/auth'));
@@ -101,7 +102,7 @@ router.get('/callback', asyncRoute(async (req: Request, res: Response) => {
     res.redirect(`${frontendUrl}/callback#${params.toString()}`);
   } catch (err: any) {
     const spotifyError = err?.response?.data;
-    console.error('Token exchange — FAILED:', JSON.stringify(spotifyError ?? err.message));
+    console.error('Token exchange — FAILED:', spotifyError?.error ?? err.message);
     const msg = encodeURIComponent(JSON.stringify(spotifyError ?? err.message));
     res.redirect(`${frontendUrl}/?error=${msg}`);
   }
@@ -133,7 +134,7 @@ router.post('/refresh', asyncRoute(async (req: Request, res: Response) => {
     if (rotated) res.cookie(REFRESH_COOKIE, rotated, cookieOptions('/api/auth', REFRESH_MAX_AGE));
     res.json({ access_token, expires_in });
   } catch (err: any) {
-    console.error('Refresh error:', err?.response?.data ?? err.message);
+    console.error('Refresh error:', err?.response?.data?.error ?? err.message);
     res.status(401).json({ error: 'Failed to refresh token' });
   }
 }));
