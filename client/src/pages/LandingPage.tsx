@@ -82,7 +82,7 @@ export default function LandingPage() {
           </div>
         )}
 
-        <p style={s.disclaimer}>Read-only access · We never modify or delete your data</p>
+        <p style={s.disclaimer}>Reads your liked songs · Only creates new private playlists · Never edits or deletes anything</p>
 
         {/* Mood pills preview */}
         <div style={s.moodRow}>
