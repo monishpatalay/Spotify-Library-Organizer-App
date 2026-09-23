@@ -1,8 +1,12 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
 import { asyncRoute } from '../utils/asyncRoute.js';
+import { readCookie, cookieOptions } from '../utils/cookies.js';
 
 const router = Router();
+
+const REFRESH_COOKIE = 'sp_refresh';
+const REFRESH_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days, then log in again
 
 const SCOPES = [
   'user-library-read',
@@ -65,10 +69,11 @@ router.get('/callback', asyncRoute(async (req: Request, res: Response) => {
 
     const { access_token, refresh_token, expires_in } = tokenRes.data;
     console.log('Token exchange — SUCCESS | has_token:', !!access_token, '| has_refresh:', !!refresh_token);
-    const params = new URLSearchParams({ access_token, refresh_token, expires_in: String(expires_in) });
-    const dest = `${frontendUrl}/callback?${params.toString()}`;
-    console.log('Redirecting client to:', dest.slice(0, 80) + '...');
-    res.redirect(dest);
+    // The long-lived refresh token stays in an HttpOnly cookie. The short-lived
+    // access token goes in the URL fragment, which browsers never send to a server.
+    if (refresh_token) res.cookie(REFRESH_COOKIE, refresh_token, cookieOptions('/api/auth', REFRESH_MAX_AGE));
+    const params = new URLSearchParams({ access_token, expires_in: String(expires_in) });
+    res.redirect(`${frontendUrl}/callback#${params.toString()}`);
   } catch (err: any) {
     const spotifyError = err?.response?.data;
     console.error('Token exchange — FAILED:', JSON.stringify(spotifyError ?? err.message));
@@ -77,12 +82,12 @@ router.get('/callback', asyncRoute(async (req: Request, res: Response) => {
   }
 }));
 
-// POST /api/auth/refresh
+// POST /api/auth/refresh — uses the HttpOnly refresh cookie set at login.
 router.post('/refresh', asyncRoute(async (req: Request, res: Response) => {
   const { clientId, clientSecret } = cfg();
-  const { refresh_token } = req.body;
+  const refresh_token = readCookie(req, REFRESH_COOKIE);
   if (!refresh_token) {
-    res.status(400).json({ error: 'refresh_token is required' });
+    res.status(401).json({ error: 'Not logged in' });
     return;
   }
 
@@ -98,12 +103,19 @@ router.post('/refresh', asyncRoute(async (req: Request, res: Response) => {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
 
-    const { access_token, expires_in } = tokenRes.data;
+    const { access_token, expires_in, refresh_token: rotated } = tokenRes.data;
+    if (rotated) res.cookie(REFRESH_COOKIE, rotated, cookieOptions('/api/auth', REFRESH_MAX_AGE));
     res.json({ access_token, expires_in });
   } catch (err: any) {
     console.error('Refresh error:', err?.response?.data ?? err.message);
     res.status(401).json({ error: 'Failed to refresh token' });
   }
 }));
+
+// POST /api/auth/logout
+router.post('/logout', (_req: Request, res: Response) => {
+  res.clearCookie(REFRESH_COOKIE, cookieOptions('/api/auth'));
+  res.status(204).end();
+});
 
 export default router;

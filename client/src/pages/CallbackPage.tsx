@@ -6,11 +6,11 @@ export default function CallbackPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    // The token arrives in the URL fragment (never sent to a server); errors in the query.
+    const params = new URLSearchParams(window.location.hash.slice(1));
     const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
     const expiresIn = params.get('expires_in');
-    const error = params.get('error');
+    const error = new URLSearchParams(window.location.search).get('error');
 
     if (error) {
       navigate(`/?error=${encodeURIComponent(error)}`);
@@ -31,7 +31,8 @@ export default function CallbackPage() {
     }
 
     localStorage.setItem('spotify_access_token', accessToken);
-    if (refreshToken) localStorage.setItem('spotify_refresh_token', refreshToken);
+    // The refresh token now lives in an HttpOnly cookie; drop any copy an older version stored.
+    localStorage.removeItem('spotify_refresh_token');
     if (expiresIn) {
       localStorage.setItem(
         'spotify_token_expiry',

@@ -76,12 +76,13 @@ test('callback with a rejected code redirects with an error instead of crashing'
   assert.match(res.headers.get('location')!, /^http:\/\/localhost:5173\/\?error=/);
 });
 
-test('refresh: 400 without a token, 401 when Spotify rejects it, new token on success', async () => {
-  assert.equal((await app.post('/api/auth/refresh', {})).status, 400);
+test('refresh: 401 without the cookie, 401 when Spotify rejects it, new token on success', async () => {
+  const refresh = (cookie?: string) => fetch(`${app.base}/api/auth/refresh`, { method: 'POST', headers: cookie ? { Cookie: cookie } : {} });
+  assert.equal((await refresh()).status, 401);
   handler = () => ({ status: 400, body: { error: 'invalid_grant' } });
-  assert.equal((await app.post('/api/auth/refresh', { refresh_token: 'bad' })).status, 401);
+  assert.equal((await refresh('sp_refresh=bad')).status, 401);
   handler = () => ({ status: 200, body: { access_token: 'NEW', expires_in: 3600 } });
-  const res = await app.post('/api/auth/refresh', { refresh_token: 'good' });
+  const res = await refresh('sp_refresh=good');
   assert.deepEqual(await res.json(), { access_token: 'NEW', expires_in: 3600 });
 });
 

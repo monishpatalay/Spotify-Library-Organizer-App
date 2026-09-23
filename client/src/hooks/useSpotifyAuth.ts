@@ -28,11 +28,13 @@ export function useSpotifyAuth() {
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
-  function logout() {
+  async function logout() {
     localStorage.removeItem('spotify_access_token');
     localStorage.removeItem('spotify_refresh_token');
     localStorage.removeItem('spotify_token_expiry');
     setUser(null);
+    // Clears the HttpOnly refresh cookie, which page scripts cannot remove themselves.
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
     window.location.href = '/';
   }
 

@@ -47,5 +47,5 @@ export async function mockApi(page: Page, api: Api) {
 }
 
 export const login = (page: Page, user: string) =>
-  page.goto(`/callback?access_token=${user}&refresh_token=rt-${user}&expires_in=3600`);
+  page.goto(`/callback#access_token=${user}&expires_in=3600`);
 

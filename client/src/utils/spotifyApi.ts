@@ -8,19 +8,10 @@ function getAccessToken(): string | null {
   return localStorage.getItem('spotify_access_token');
 }
 
-function getRefreshToken(): string | null {
-  return localStorage.getItem('spotify_refresh_token');
-}
-
+// The refresh token is an HttpOnly cookie the browser sends with this request.
 async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
   try {
-    const res = await fetch(`${API_BASE}/api/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
+    const res = await fetch(`${API_BASE}/api/auth/refresh`, { method: 'POST' });
     if (!res.ok) return null;
     const data = await res.json();
     localStorage.setItem('spotify_access_token', data.access_token);
@@ -53,12 +44,15 @@ export async function apiFetch(
     return apiFetch(path, options, retries - 1);
   }
 
-  // Refresh expired token then retry once
+  // Refresh expired token then retry once; if the session is gone, log in again.
   if (res.status === 401) {
     token = await refreshAccessToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
       res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    } else if (typeof window !== 'undefined') {
+      localStorage.removeItem('spotify_access_token');
+      window.location.assign('/?error=session_expired');
     }
   }
 
