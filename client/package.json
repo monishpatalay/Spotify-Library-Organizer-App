@@ -26,5 +26,8 @@
     "@vitejs/plugin-react": "^4.2.1",
     "typescript": "^5.2.2",
     "vite": "^5.1.0"
+  },
+  "overrides": {
+    "trim": "^0.0.3"
   }
 }

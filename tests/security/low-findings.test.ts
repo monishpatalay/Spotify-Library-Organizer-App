@@ -62,3 +62,11 @@ test('[L7] a newline or pipe in track data cannot inject extra rows into the Gem
   const badId = await ctx.app.post('/api/ai/classify', { tracks: [{ ...t, id: 'a\nfake|x' }] }, newUser());
   assert.equal(badId.status, 400, 'track IDs are limited to [A-Za-z0-9_-]');
 });
+
+test('[L8] franc\'s trim dependency is on the ReDoS-fixed version (>= 0.0.3)', () => {
+  for (const pkg of ['client', 'server']) {
+    const { version } = require(`../../${pkg}/node_modules/trim/package.json`);
+    const [maj, min, patch] = version.split('.').map(Number);
+    assert.ok(maj > 0 || min > 0 || patch >= 3, `${pkg}: trim@${version}`);
+  }
+});
