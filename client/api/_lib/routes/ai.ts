@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import path from 'path';
+import { createHash } from 'crypto';
 import { requireSpotifyUser } from '../middleware/tokenRefresh.js';
 import { asyncRoute } from '../utils/asyncRoute.js';
 
@@ -59,6 +60,14 @@ function writeCache(cache: Record<string, CacheEntry>) {
 // In-memory cache (loaded once, flushed periodically)
 let memCache: Record<string, CacheEntry> = readCache();
 let dirtyCount = 0;
+
+// The cache is shared by all users, so key it on the track ID *and* the metadata
+// the client sent: a request that lies about a track's name gets its own entry
+// instead of overwriting what everyone else receives for that ID.
+function cacheKey(t: { id: string; name: string; artist: string }): string {
+  const meta = `${t.name.trim().toLowerCase()}|${t.artist.trim().toLowerCase()}`;
+  return `${t.id}:${createHash('sha256').update(meta).digest('hex').slice(0, 16)}`;
+}
 
 function getCached(id: string): CacheEntry | null {
   return memCache[id] ?? null;
@@ -390,7 +399,7 @@ router.post('/classify', asyncRoute(async (req: Request, res: Response) => {
 
   // Serve from cache first
   for (const t of tracks) {
-    const cached = getCached(t.id);
+    const cached = getCached(cacheKey(t));
     if (cached) {
       results[t.id] = cached;
     } else {
@@ -436,7 +445,7 @@ router.post('/classify', asyncRoute(async (req: Request, res: Response) => {
     if (batchResult) {
       classifiedCount += Object.keys(batchResult).length;
       Object.assign(results, batchResult);
-      Object.assign(newEntries, batchResult);
+      for (const t of batch) newEntries[cacheKey(t)] = batchResult[t.id];
     } else {
       failedCount += batch.length;
       for (const t of batch) results[t.id] = { moods: [], language: null };
