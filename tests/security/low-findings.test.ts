@@ -31,3 +31,8 @@ test('[L2] Last.fm is called over HTTPS (the API key travels in the query string
   const call = ctx.calls.find((c) => c.url.includes('audioscrobbler'))!;
   assert.ok(call.url.startsWith('https://'), `Last.fm URL: ${call.url.replace(/api_key=[^&]+/, 'api_key=…')}`);
 });
+
+test('[L4] only the scopes the app uses are requested', async () => {
+  const scopes = new URL((await ctx.app.get('/api/auth/login')).headers.get('location')!).searchParams.get('scope')!.split(' ');
+  assert.deepEqual(scopes.sort(), ['playlist-modify-private', 'user-library-read', 'user-read-email']);
+});

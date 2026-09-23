@@ -19,12 +19,12 @@ async function issueSession(res: Response, accessToken: string) {
   res.cookie(SESSION_COOKIE, signSession(data.id), cookieOptions('/api', SESSION_MAX_AGE));
 }
 
+// Only what the app uses: read liked songs, create private playlists, show the
+// user's email on the dashboard (/me's id, name and avatar need no scope).
 const SCOPES = [
   'user-library-read',
   'playlist-modify-private',
-  'playlist-modify-public',
   'user-read-email',
-  'user-read-private',
 ].join(' ');
 
 function cfg() {
