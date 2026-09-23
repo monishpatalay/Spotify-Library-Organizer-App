@@ -30,13 +30,14 @@ export function useSpotifyAuth() {
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
   async function logout() {
+    // Clear the HttpOnly cookies first (page scripts can't remove them), then local
+    // state, then one full page load. Clearing state before the await re-rendered the
+    // dashboard into a second, client-side redirect that raced this one.
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
     localStorage.removeItem('spotify_access_token');
     localStorage.removeItem('spotify_refresh_token');
     localStorage.removeItem('spotify_token_expiry');
     clearLibraryCache();
-    setUser(null);
-    // Clears the HttpOnly refresh cookie, which page scripts cannot remove themselves.
-    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
     window.location.href = '/';
   }
 
