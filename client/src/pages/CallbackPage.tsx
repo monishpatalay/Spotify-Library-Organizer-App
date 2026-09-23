@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { clearLibraryCache } from '../hooks/useLikedSongs';
 
 export default function CallbackPage() {
   const navigate = useNavigate();
@@ -33,6 +34,8 @@ export default function CallbackPage() {
     localStorage.setItem('spotify_access_token', accessToken);
     // The refresh token now lives in an HttpOnly cookie; drop any copy an older version stored.
     localStorage.removeItem('spotify_refresh_token');
+    // A new login may be a different Spotify user: never show them the previous library.
+    clearLibraryCache();
     if (expiresIn) {
       localStorage.setItem(
         'spotify_token_expiry',

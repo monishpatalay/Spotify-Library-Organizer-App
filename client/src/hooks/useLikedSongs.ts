@@ -14,6 +14,12 @@ interface CacheEntry {
   moodLoaded: boolean;
 }
 
+// The cached library isn't tied to a Spotify user, so drop it whenever the user
+// changes (logout, new login); otherwise the next person on this browser sees it.
+export function clearLibraryCache() {
+  try { localStorage.removeItem(CACHE_KEY); } catch { /* storage unavailable */ }
+}
+
 function saveCache(tracks: Track[], moodLoaded: boolean) {
   try {
     const entry: CacheEntry = { tracks, timestamp: Date.now(), moodLoaded };

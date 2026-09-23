@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SpotifyUser } from '../types';
 import { fetchUserProfile } from '../utils/spotifyApi';
+import { clearLibraryCache } from './useLikedSongs';
 
 export function useSpotifyAuth() {
   const [user, setUser] = useState<SpotifyUser | null>(null);
@@ -32,6 +33,7 @@ export function useSpotifyAuth() {
     localStorage.removeItem('spotify_access_token');
     localStorage.removeItem('spotify_refresh_token');
     localStorage.removeItem('spotify_token_expiry');
+    clearLibraryCache();
     setUser(null);
     // Clears the HttpOnly refresh cookie, which page scripts cannot remove themselves.
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
