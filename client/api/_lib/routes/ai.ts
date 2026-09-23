@@ -354,9 +354,12 @@ Return ONLY valid JSON. No markdown, no explanation. "moods" is an ARRAY (never 
 async function classifyBatch(
   batch: ClassifyInput[]
 ): Promise<Record<string, ClassifyResult>> {
+  // One line per track, fields split by "|": strip both from user-controlled text
+  // so a track name can't add rows (and fake track IDs) to the batch.
+  const clean = (v: string | undefined) => (v ?? '').replace(/[\r\n|]+/g, ' ');
   const songList = batch.map((s) => {
-    const tags = s.tags?.slice(0, 5).join(',') ?? '';
-    return `${s.id}|${s.name}|${s.artist}|${s.album ?? ''}|${tags}`;
+    const tags = s.tags?.slice(0, 5).map(clean).join(',') ?? '';
+    return `${s.id}|${clean(s.name)}|${clean(s.artist)}|${clean(s.album)}|${tags}`;
   }).join('\n');
 
   const raw = await generateJson(
@@ -384,7 +387,7 @@ router.post('/classify', asyncRoute(async (req: Request, res: Response) => {
     return;
   }
   if (tracks.some((track) => !track
-    || typeof track.id !== 'string' || track.id.length === 0 || track.id.length > 128
+    || typeof track.id !== 'string' || !/^[\w-]{1,128}$/.test(track.id)
     || typeof track.name !== 'string' || track.name.length > 300
     || typeof track.artist !== 'string' || track.artist.length > 300
     || (track.album !== undefined && (typeof track.album !== 'string' || track.album.length > 300))
