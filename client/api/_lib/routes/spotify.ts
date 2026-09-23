@@ -86,21 +86,20 @@ router.post('/playlist', asyncRoute(async (req: Request, res: Response) => {
     batches.push(uris.slice(i, i + 100));
   }
 
+  // The playlist already exists at this point, so every failure below still
+  // reports it, with how far we got and the tracks that are still missing.
+  let added = 0;
   for (const batch of batches) {
     try {
       await client.post(`/playlists/${playlistId}/tracks`, { uris: batch });
+      added += batch.length;
     } catch (err: any) {
+      const progress = { playlistId, playlistUrl, added, total: uris.length, trackUris: uris.slice(added) };
       if (err?.response?.status === 403) {
-        // Quota blocked — return partial success
-        res.json({
-          quota_blocked: true,
-          playlistId,
-          playlistUrl,
-          trackUris: uris,
-        });
+        res.json({ quota_blocked: true, ...progress });
         return;
       }
-      res.status(500).json({ error: 'Failed to add tracks to playlist' });
+      res.status(502).json({ error: 'Failed to add all tracks to the playlist', ...progress });
       return;
     }
   }

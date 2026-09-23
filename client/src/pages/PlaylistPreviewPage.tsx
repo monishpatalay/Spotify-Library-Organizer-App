@@ -5,7 +5,7 @@ import TrackTable from '../components/TrackTable';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { useSpotifyAuth } from '../hooks/useSpotifyAuth';
-import { createPlaylist } from '../utils/spotifyApi';
+import { createPlaylist, CreatePlaylistResult } from '../utils/spotifyApi';
 import { PlaylistPreview } from '../types';
 
 interface LocationState {
@@ -14,12 +14,9 @@ interface LocationState {
   isMulti: boolean;
 }
 
-interface CreateResult {
-  playlistId?: string;
-  playlistUrl?: string;
-  quota_blocked?: boolean;
-  trackUris?: string[];
+interface CreateResult extends CreatePlaylistResult {
   name: string;
+  failed?: boolean; // nothing was created
 }
 
 export default function PlaylistPreviewPage() {
@@ -72,7 +69,7 @@ export default function PlaylistPreviewPage() {
         const res = await createPlaylist(preview.playlistName, uris);
         allResults.push({ ...res, name: preview.playlistName });
       } catch (e: any) {
-        allResults.push({ name: preview.playlistName, quota_blocked: true, trackUris: preview.matchedTracks.map(t => t.uri) });
+        allResults.push({ name: preview.playlistName, failed: true });
         setError(e.message ?? 'Error creating one or more playlists');
       }
     }
@@ -114,8 +111,25 @@ export default function PlaylistPreviewPage() {
         {done && (
           <div style={styles.resultsSection} className="fade-up">
             {results.map((r) => (
-              <div key={r.name} style={r.quota_blocked ? styles.warningCard : styles.successCard}>
-                {r.quota_blocked ? (
+              <div key={r.name} style={r.quota_blocked || r.partial || r.failed ? styles.warningCard : styles.successCard}>
+                {r.failed ? (
+                  <p style={styles.resultTitle}>❌ "{r.name}" could not be created.</p>
+                ) : r.partial ? (
+                  <>
+                    <p style={styles.resultTitle}>⚠️ "{r.name}" was created with {r.added} of {r.total} tracks.</p>
+                    {r.playlistUrl && (
+                      <a href={r.playlistUrl} target="_blank" rel="noreferrer" style={styles.openLink}>
+                        Open in Spotify →
+                      </a>
+                    )}
+                    <p style={styles.warningText}>Spotify stopped accepting tracks partway. Copy the missing ones to add them yourself.</p>
+                    {r.trackUris && (
+                      <button style={styles.copyBtn} className="btn-outline" onClick={() => copyUris(r.name, r.trackUris!)}>
+                        {copiedUris[r.name] ? '✓ Copied!' : `📋 Copy ${r.trackUris.length} missing track URIs`}
+                      </button>
+                    )}
+                  </>
+                ) : r.quota_blocked ? (
                   <>
                     <p style={styles.resultTitle}>✅ "{r.name}" created!</p>
                     {r.playlistUrl && (

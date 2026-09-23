@@ -118,19 +118,29 @@ export async function fetchAllLikedSongs(
   return allTracks;
 }
 
-export async function createPlaylist(
-  name: string,
-  trackUris: string[]
-): Promise<{ playlistId?: string; playlistUrl?: string; quota_blocked?: boolean; trackUris?: string[] }> {
+export interface CreatePlaylistResult {
+  playlistId?: string;
+  playlistUrl?: string;
+  quota_blocked?: boolean;
+  partial?: boolean; // created, but not every track could be added
+  added?: number;
+  total?: number;
+  trackUris?: string[]; // the tracks still missing from the playlist
+}
+
+export async function createPlaylist(name: string, trackUris: string[]): Promise<CreatePlaylistResult> {
   const token = getAccessToken();
   const res = await apiFetch('/api/spotify/playlist', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, trackUris, accessToken: token }),
   });
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? 'Failed to create playlist');
+    // A failure after the playlist was created still leaves it in the user's
+    // account: report it (with progress) instead of hiding it behind an error.
+    if (data.playlistId) return { ...data, partial: true };
+    throw new Error(data.error ?? 'Failed to create playlist');
   }
-  return res.json();
+  return data;
 }

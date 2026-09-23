@@ -143,6 +143,12 @@ test('language detection is requested in authenticated chunks of 40', async () =
   assert.ok(http.calls.every((c) => c.auth === 'Bearer AT'));
 });
 
+test('createPlaylist reports a half-created playlist instead of throwing', async () => {
+  handler = () => ({ status: 502, body: { error: 'Failed to add all tracks to the playlist', playlistId: 'p', playlistUrl: 'u', added: 100, total: 150, trackUris: ['spotify:track:x'] } });
+  const out = await spotifyApi.createPlaylist('x', ['spotify:track:1']);
+  assert.deepEqual([out.partial, out.playlistId, out.added, out.total], [true, 'p', 100, 150]);
+});
+
 test('createPlaylist surfaces the server error message', async () => {
   handler = () => ({ status: 500, body: { error: 'Failed to add tracks to playlist' } });
   await assert.rejects(spotifyApi.createPlaylist('x', ['spotify:track:1']), /Failed to add tracks to playlist/);
