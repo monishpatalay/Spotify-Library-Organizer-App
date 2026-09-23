@@ -10,7 +10,10 @@ function sendSpotifyError(res: Response, err: any) {
   const status = err?.response?.status ?? 500;
   const retryAfter = err?.response?.headers?.['retry-after'];
   if (retryAfter) res.set('Retry-After', String(retryAfter));
-  res.status(status).json({ error: err?.response?.data ?? err.message });
+  // Spotify's own error body is fine to pass on; a network error's message
+  // (internal hosts, ports) is only logged.
+  if (!err?.response) console.error('Spotify request failed:', err?.message);
+  res.status(status).json({ error: err?.response ? err.response.data : 'Spotify is unreachable' });
 }
 
 // GET /api/spotify/me

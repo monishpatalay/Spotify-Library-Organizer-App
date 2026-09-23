@@ -42,3 +42,10 @@ test('[L5] liked-songs forwards Spotify\'s Retry-After on 429', async () => {
   const res = await ctx.app.get('/api/spotify/liked-songs', 'tok');
   assert.equal(res.headers.get('retry-after'), '7');
 });
+
+test('[L6] network errors do not leak internal error messages to the client', async () => {
+  ctx.handler = () => new Error('connect ECONNREFUSED 10.0.0.12:443 internal-proxy');
+  const logs = captureLogs();
+  const body = await (await ctx.app.get('/api/spotify/liked-songs', 'tok').finally(logs.restore)).text();
+  assert.ok(!body.includes('10.0.0.12'), body);
+});
