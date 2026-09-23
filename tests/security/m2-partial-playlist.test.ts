@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { useTestApp } from '../helpers/mockHttp';
 
 const ctx = useTestApp();
-const uris = Array.from({ length: 150 }, (_, i) => `spotify:track:${i}`);
+const uris = Array.from({ length: 150 }, (_, i) => `spotify:track:${String(i).padStart(22, '0')}`);
 const failSecondBatch = (status: number) => {
   let adds = 0;
   return (c: { url: string }) => c.url.endsWith('/me/playlists') ? { status: 201, body: { id: 'half' } }

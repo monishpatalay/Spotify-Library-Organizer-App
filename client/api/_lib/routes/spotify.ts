@@ -43,20 +43,22 @@ router.get('/liked-songs', extractToken, asyncRoute(async (req: Request, res: Re
   }
 }));
 
-// POST /api/spotify/playlist
-router.post('/playlist', asyncRoute(async (req: Request, res: Response) => {
-  const { name, trackUris, accessToken } = req.body as {
-    name: string;
-    trackUris: string[];
-    accessToken: string;
-  };
+const TRACK_URI = /^spotify:track:[A-Za-z0-9]{22}$/;
 
-  if (!name || !accessToken) {
-    res.status(400).json({ error: 'name and accessToken are required' });
+// POST /api/spotify/playlist
+router.post('/playlist', extractToken, asyncRoute(async (req: Request, res: Response) => {
+  const accessToken = (req as any).accessToken as string;
+  const { name, trackUris } = req.body as { name?: unknown; trackUris?: unknown };
+
+  // Validate everything before creating the playlist, so bad input never
+  // leaves an empty playlist behind in the user's account.
+  if (typeof name !== 'string' || !name.trim() || name.length > 100) {
+    res.status(400).json({ error: 'name must be 1–100 characters' });
     return;
   }
-  if (trackUris !== undefined && !Array.isArray(trackUris)) {
-    res.status(400).json({ error: 'trackUris must be an array' });
+  if (trackUris !== undefined && (!Array.isArray(trackUris)
+    || !trackUris.every((u) => typeof u === 'string' && TRACK_URI.test(u)))) {
+    res.status(400).json({ error: 'trackUris must be Spotify track URIs' });
     return;
   }
 
@@ -82,7 +84,7 @@ router.post('/playlist', asyncRoute(async (req: Request, res: Response) => {
   }
 
   // Step 3: Add tracks in batches of 100
-  const uris = (trackUris ?? []).filter(Boolean);
+  const uris = (trackUris as string[] | undefined) ?? [];
   if (uris.length === 0) {
     res.json({ playlistId, playlistUrl });
     return;

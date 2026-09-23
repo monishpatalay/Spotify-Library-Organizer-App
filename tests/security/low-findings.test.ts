@@ -70,3 +70,21 @@ test('[L8] franc\'s trim dependency is on the ReDoS-fixed version (>= 0.0.3)', (
     assert.ok(maj > 0 || min > 0 || patch >= 3, `${pkg}: trim@${version}`);
   }
 });
+
+test('[L10] playlist creation uses the Authorization header, not a token in the body', async () => {
+  ctx.handler = (c) => c.url.endsWith('/me/playlists') ? { status: 201, body: { id: 'p' } } : { status: 201, body: {} };
+  const res = await ctx.app.post('/api/spotify/playlist', { name: 'x', trackUris: [], accessToken: 'user:a' });
+  assert.equal(res.status, 401);
+});
+
+test('[L10] playlist creation validates name length and track URI format before creating anything', async () => {
+  ctx.handler = (c) => c.url.endsWith('/me/playlists') ? { status: 201, body: { id: 'p' } } : { status: 201, body: {} };
+  const bad = [
+    { name: 'x'.repeat(101), trackUris: [] },
+    { name: 'x', trackUris: ['https://evil.example'] },
+    { name: 'x', trackUris: [42] },
+    { name: 42, trackUris: [] },
+  ];
+  for (const body of bad) assert.equal((await ctx.app.post('/api/spotify/playlist', { ...body, accessToken: 'tok' }, 'tok')).status, 400, JSON.stringify(body).slice(0, 60));
+  assert.equal(ctx.calls.filter((c) => c.url.includes('/playlists')).length, 0, 'nothing is created for invalid input');
+});

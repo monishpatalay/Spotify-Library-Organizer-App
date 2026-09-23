@@ -108,8 +108,8 @@ test('liked-songs passes Spotify 401/403/429/500 statuses through and turns netw
 test('playlist creation: private playlist, 250 tracks added in 3 batches of at most 100', async () => {
   handler = (c) => c.url.endsWith('/me/playlists') ? { status: 201, body: { id: 'pl1', external_urls: { spotify: 'https://open.spotify.com/playlist/pl1' } } }
     : c.url.endsWith('/playlists/pl1/tracks') ? { status: 201, body: { snapshot_id: 's' } } : undefined;
-  const uris = Array.from({ length: 250 }, (_, i) => `spotify:track:${i}`);
-  const res = await app.post('/api/spotify/playlist', { name: '😀 שלום Mix', trackUris: uris, accessToken: 'tok' });
+  const uris = Array.from({ length: 250 }, (_, i) => `spotify:track:${String(i).padStart(22, '0')}`);
+  const res = await app.post('/api/spotify/playlist', { name: '😀 שלום Mix', trackUris: uris, accessToken: 'tok' }, 'tok');
   assert.deepEqual(await res.json(), { playlistId: 'pl1', playlistUrl: 'https://open.spotify.com/playlist/pl1' });
   const create = http.calls.find((c) => c.url.endsWith('/me/playlists'))!;
   assert.equal((create.body as any).public, false);
@@ -121,7 +121,7 @@ test('playlist creation: private playlist, 250 tracks added in 3 batches of at m
 test('playlist creation: a 403 while adding tracks returns quota_blocked with the playlist link', async () => {
   handler = (c) => c.url.endsWith('/me/playlists') ? { status: 201, body: { id: 'pl2' } }
     : c.url.endsWith('/tracks') ? { status: 403, body: {} } : undefined;
-  const body = await (await app.post('/api/spotify/playlist', { name: 'x', trackUris: ['spotify:track:1'], accessToken: 'tok' })).json();
+  const body = await (await app.post('/api/spotify/playlist', { name: 'x', trackUris: ['spotify:track:0000000000000000000001'], accessToken: 'tok' }, 'tok')).json();
   assert.equal(body.quota_blocked, true);
   assert.equal(body.playlistId, 'pl2');
 });

@@ -132,11 +132,11 @@ export interface CreatePlaylistResult {
 }
 
 export async function createPlaylist(name: string, trackUris: string[]): Promise<CreatePlaylistResult> {
-  const token = getAccessToken();
+  // apiFetch sends the token in the Authorization header; the server caps names at 100.
   const res = await apiFetch('/api/spotify/playlist', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, trackUris, accessToken: token }),
+    body: JSON.stringify({ name: name.slice(0, 100), trackUris }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
