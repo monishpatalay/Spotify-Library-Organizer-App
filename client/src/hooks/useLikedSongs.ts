@@ -70,9 +70,9 @@ export function useLikedSongs() {
       setTracks(withTags);
 
       // Step 2: AI classification (mood + language) with real-time progress.
-      // Server returns cached results instantly for known tracks — only new songs hit Claude.
+      // Server returns cached results instantly for known tracks — only new songs hit Gemini.
       setMoodStatus(`AI classifying songs… 0/${withTags.length}`);
-      const [aiMap, langMap] = await Promise.all([
+      const [aiResult, langMap] = await Promise.all([
         aiClassify(withTags, (done, total, fromCache) => {
           const label = fromCache > 0 ? ` (${fromCache} from cache)` : '';
           setMoodStatus(`AI classifying… ${done}/${total}${label}`);
@@ -80,6 +80,7 @@ export function useLikedSongs() {
         classifyTrackLanguages(withTags),
       ]);
 
+      const aiMap = aiResult.results;
       const enriched = withTags.map((t) => {
         const ai = aiMap[t.id];
         return {
@@ -90,12 +91,20 @@ export function useLikedSongs() {
         };
       });
       setTracks(enriched);
-      saveCache(enriched, true);
-      setMoodLoaded(true);
+
+      const taggedCount = aiResult.classified + aiResult.cached;
+      if (aiResult.failed > 0) {
+        setMoodLoaded(false);
+        setMoodError(`${taggedCount}/${withTags.length} songs tagged. AI tagging partially failed.`);
+        saveCache(enriched, false);
+      } else {
+        setMoodLoaded(true);
+        setMoodError(null);
+        saveCache(enriched, true);
+      }
     } catch (e: any) {
-      setMoodError(e.message ?? 'Failed to load mood data');
-      // Still allow searching — fallback filters (Last.fm tags + audio features) still work
-      setMoodLoaded(true);
+      setMoodLoaded(false);
+      setMoodError(e.message ?? 'AI tagging unavailable');
     } finally {
       setMoodLoading(false);
       setMoodStatus('');

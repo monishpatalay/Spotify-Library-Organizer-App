@@ -1,5 +1,6 @@
 import React from 'react';
 import { Track } from '../types';
+import { getTrackLanguage, getFallbackMoods } from '../utils/filterSongs';
 
 interface TrackCardProps { track: Track; onRemove?: () => void; }
 
@@ -16,7 +17,11 @@ const DEFAULT_MOOD = { color: '#a855f7', bg: 'rgba(168,85,247,0.12)' };
 
 export default function TrackCard({ track, onRemove }: TrackCardProps) {
   const year = track.releaseDate?.slice(0, 4) ?? '';
-  const hasInfo = track.aiLanguage || (track.aiMoods && track.aiMoods.length > 0);
+  const aiLang = track.aiLanguage;
+  const fallbackLang = !aiLang ? getTrackLanguage(track) : null;
+  const aiMoods = track.aiMoods && track.aiMoods.length > 0 ? track.aiMoods : null;
+  const fallbackMoods = !aiMoods ? getFallbackMoods(track) : [];
+  const hasAnyTags = Boolean(aiLang || fallbackLang || (aiMoods && aiMoods.length > 0) || fallbackMoods.length > 0);
 
   return (
     <div style={s.card} className="track-card glass">
@@ -35,23 +40,39 @@ export default function TrackCard({ track, onRemove }: TrackCardProps) {
         )}
         <p style={s.artists}>{track.artists.join(', ')}</p>
         <p style={s.album}>{track.album}{year ? ` · ${year}` : ''}</p>
-        {hasInfo && (
-          <div style={s.tags}>
-            {track.aiLanguage && (
-              <span style={{ ...s.tag, color: '#1DB954', background: 'rgba(29,185,84,0.1)', border: '1px solid rgba(29,185,84,0.2)' }}>
-                {track.aiLanguage}
+        <div style={s.tags}>
+          {aiLang && (
+            <span style={{ ...s.tag, color: '#1DB954', background: 'rgba(29,185,84,0.1)', border: '1px solid rgba(29,185,84,0.2)' }}>
+              {aiLang}
+            </span>
+          )}
+          {!aiLang && fallbackLang && (
+            <span style={{ ...s.tag, color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px dashed rgba(52,211,153,0.3)' }} title="Estimated fallback language">
+              {fallbackLang} <span style={{ fontSize: 9, opacity: 0.7 }}>(est.)</span>
+            </span>
+          )}
+          {aiMoods?.map((mood) => {
+            const mc = MOOD_COLORS[mood] ?? DEFAULT_MOOD;
+            return (
+              <span key={mood} style={{ ...s.tag, color: mc.color, background: mc.bg, border: `1px solid ${mc.color}30` }}>
+                {mood}
               </span>
-            )}
-            {track.aiMoods?.map((mood) => {
-              const mc = MOOD_COLORS[mood] ?? DEFAULT_MOOD;
-              return (
-                <span key={mood} style={{ ...s.tag, color: mc.color, background: mc.bg, border: `1px solid ${mc.color}30` }}>
-                  {mood}
-                </span>
-              );
-            })}
-          </div>
-        )}
+            );
+          })}
+          {!aiMoods && fallbackMoods.map((mood) => {
+            const mc = MOOD_COLORS[mood] ?? DEFAULT_MOOD;
+            return (
+              <span key={mood} style={{ ...s.tag, color: mc.color, background: mc.bg, border: `1px dashed ${mc.color}40` }} title="Estimated fallback mood">
+                {mood} <span style={{ fontSize: 9, opacity: 0.7 }}>(est.)</span>
+              </span>
+            );
+          })}
+          {!hasAnyTags && (
+            <span style={{ ...s.tag, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              Tags unavailable
+            </span>
+          )}
+        </div>
       </div>
       {onRemove && (
         <button style={s.removeBtn} className="remove-btn-inline" onClick={onRemove} title="Remove">✕</button>

@@ -73,13 +73,17 @@ const ENGLISH_POSITIVE_FM_TAGS = [
   'uk drill', 'grime', 'uk rap', 'afrobeats', 'reggaeton', 'latin pop',
 ];
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function tier0_lastfmLang(track: Track, lang: string): boolean {
   if (!track.lastfmTags?.length) return false;
   const targets = LANG_FM_TAGS[lang] ?? [];
   return track.lastfmTags.some((tag) => targets.some((t) => tag === t || tag.includes(t)));
 }
 
-// ─── 4-tier language detection ────────────────────────────────────────────────
+// ─── Language detection with strict signal precedence ─────────────────────────
 
 function tier1_script(track: Track, lang: string): boolean {
   const text = `${track.name} ${track.album}`;
@@ -95,8 +99,13 @@ function tier2_albumLabel(track: Track, lang: string): boolean {
 
 function tier3_filmName(track: Track, lang: string): boolean {
   const albumLow = norm(track.album);
+  if (!albumLow) return false;
   const films = KNOWN_FILMS[lang] ?? [];
-  return films.some((film) => albumLow.includes(norm(film)));
+  return films.some((film) => {
+    const f = norm(film);
+    const regex = new RegExp(`(^|[^a-z0-9])${escapeRegex(f)}([^a-z0-9]|$)`, 'i');
+    return regex.test(albumLow);
+  });
 }
 
 function tier4_uniqueArtist(track: Track, lang: string): boolean {
@@ -104,29 +113,70 @@ function tier4_uniqueArtist(track: Track, lang: string): boolean {
   return uniqueArtists.some((a) => artistMatch(track.artists, a));
 }
 
-function trackMatchesLanguage(track: Track, lang: string): boolean {
-  // AI language classification is the highest-confidence signal.
-  // Claude identifies language from artist name, song name, and album — not romanized lyrics.
-  // This fixes false positives like "Jhol" (Hindi) appearing in English results.
-  if (track.aiLanguage != null) return track.aiLanguage === lang;
+export function getTrackLanguage(track: Track): string | null {
+  // Signal 1: AI classification (highest confidence)
+  if (track.aiLanguage) return norm(track.aiLanguage);
 
+  // Signal 2: Unicode script in track name or album
+  const text = `${track.name} ${track.album}`;
+  for (const [regex, scriptLang] of SCRIPT_LANG) {
+    if (regex.test(text)) return scriptLang;
+  }
+
+  // Signal 3: Explicit album language markers (e.g. "(Telugu)", "[Punjabi]")
+  for (const [markerLang, markers] of Object.entries(ALBUM_LANGUAGE_MARKERS)) {
+    const albumLow = norm(track.album);
+    if (markers.some((m) => albumLow.includes(m))) return markerLang;
+  }
+
+  // Signal 4: Unique Artists (known artists with high single-language affinity)
+  for (const [artistLang, artists] of Object.entries(UNIQUE_ARTISTS)) {
+    if (artists.some((a) => artistMatch(track.artists, a))) {
+      return artistLang;
+    }
+  }
+
+  // Signal 5: Last.fm community tags
+  if (track.lastfmTags?.length) {
+    for (const [lang, tags] of Object.entries(LANG_FM_TAGS)) {
+      if (track.lastfmTags.some((tag) => tags.some((t) => tag === t || tag.includes(t)))) {
+        return lang;
+      }
+    }
+    if (track.lastfmTags.some((tag) => ENGLISH_POSITIVE_FM_TAGS.some((t) => tag === t || tag.includes(t)))) {
+      return 'english';
+    }
+  }
+
+  // Signal 6: Known film soundtracks (with word boundaries)
+  for (const [filmLang, films] of Object.entries(KNOWN_FILMS)) {
+    const albumLow = norm(track.album);
+    const matched = films.some((film) => {
+      const f = norm(film);
+      const regex = new RegExp(`(^|[^a-z0-9])${escapeRegex(f)}([^a-z0-9]|$)`, 'i');
+      return regex.test(albumLow);
+    });
+    if (matched) return filmLang;
+  }
+
+  // Signal 7: Franc lyrics detection (weakest fallback)
+  if (track.detectedLanguage) {
+    return norm(track.detectedLanguage);
+  }
+
+  return null;
+}
+
+export function trackMatchesLanguage(track: Track, lang: string): boolean {
+  const detected = getTrackLanguage(track);
+  if (detected != null) return detected === lang;
   if (lang === 'english') return isEnglishTrack(track);
-
-  // Tier 0: Last.fm community tags
-  if (tier0_lastfmLang(track, lang)) return true;
-  // Tier ML: franc from lyrics (unreliable for romanized text — AI is preferred)
-  if (track.detectedLanguage != null) return track.detectedLanguage === lang;
-  // Tiers 1-4: heuristics
-  return (
-    tier1_script(track, lang) ||
-    tier2_albumLabel(track, lang) ||
-    tier3_filmName(track, lang) ||
-    tier4_uniqueArtist(track, lang)
-  );
+  return false;
 }
 
 function isEnglishTrack(track: Track): boolean {
-  // aiLanguage already handled above in trackMatchesLanguage
+  if (track.aiLanguage != null) return track.aiLanguage === 'english';
+
   if (track.lastfmTags?.length) {
     const hasNonEnglishTag = track.lastfmTags.some((tag) =>
       NON_ENGLISH_FM_TAGS.some((t) => tag === t || tag.includes(t))
@@ -187,13 +237,26 @@ function matchesMood(af: AudioFeatures, mood: string, trackName?: string, tags?:
 // ─── Mood matching (AI → Last.fm → audio features) ───────────────────────────
 
 function matchTrackMood(t: Track, mood: string): boolean {
-  // Tier 1: Claude AI multi-mood classification (highest confidence)
+  // Tier 1: Gemini AI multi-mood classification (highest confidence)
   if (t.aiMoods && t.aiMoods.length > 0) return t.aiMoods.includes(mood);
   // Tier 2: Last.fm community tags
   if (t.lastfmTags && t.lastfmTags.length > 0 && tagsMatchMood(t.lastfmTags, mood)) return true;
   // Tier 3: Spotify audio features (ML-computed by Spotify)
   if (t.audioFeatures) return matchesMood(t.audioFeatures, mood, t.name, t.lastfmTags);
   return false;
+}
+
+export function getFallbackMoods(t: Track): string[] {
+  if (t.aiMoods && t.aiMoods.length > 0) return t.aiMoods;
+  const moods: string[] = [];
+  const candidateMoods = ['sad', 'happy', 'party', 'chill', 'energetic', 'workout', 'romantic'];
+  for (const m of candidateMoods) {
+    if (matchTrackMood(t, m)) {
+      moods.push(m);
+      if (moods.length >= 2) break;
+    }
+  }
+  return moods;
 }
 
 // ─── Single condition match (used by combined filter) ────────────────────────

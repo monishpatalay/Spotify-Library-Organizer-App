@@ -3,10 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "nodemon --watch src --watch ../client/api/_lib --ext ts --exec tsx src/index.ts"
+    "dev": "nodemon --watch src --watch ../client/api/_lib --ext ts --exec tsx src/index.ts",
+    "check": "tsc --noEmit",
+    "test": "tsx --test ../tests/regression.test.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.109.0",
     "axios": "^1.6.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.4",

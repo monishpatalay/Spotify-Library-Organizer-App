@@ -4,12 +4,19 @@
 export const UNIQUE_ARTISTS: Record<string, string[]> = {
   telugu: [
     // Playback singers
-    'Sunitha', 'Harika Narayan', 'Ramya Behara', 'Deepika Das', 'Sahiti',
+    'Indravathi Chauhan', 'Sunitha', 'Harika Narayan', 'Ramya Behara', 'Deepika Das', 'Sahiti',
     'Pranavi Atla', 'Kaala Bhairava', 'Hemachandra', 'Sri Krishna',
     'Sriram Chandra', 'Geetha Madhuri', 'Padmalatha', 'Chitra',
     // Music directors who sometimes appear as artists
     'SS Thaman', 'S. S. Thaman', 'Thaman S', 'DSP', 'Devi Sri Prasad',
     'Anup Rubens', 'Mickey J Meyer', 'Mani Sharma',
+  ],
+  marathi: [
+    'Ajay-Atul', 'Swapnil Bandodkar', 'Avadhoot Gupte', 'Bela Shende', 'Adarsh Shinde',
+    'Mahesh Kale', 'Rahul Deshpande', 'Anand Shinde',
+  ],
+  gujarati: [
+    'Kinjal Dave', 'Geeta Rabari', 'Jignesh Kaviraj', 'Kirtidan Gadhvi',
   ],
   tamil: [
     'Haricharan', 'Shakthisree Gopalan', 'Swetha Mohan', 'Sathyaprakash',
@@ -49,7 +56,7 @@ export const UNIQUE_ARTISTS: Record<string, string[]> = {
     'Elvis Presley', 'Frank Sinatra', 'John Legend', 'Usher', 'Chris Brown',
   ],
   punjabi: [
-    'Karan Aujla', 'Diljit Dosanjh', 'AP Dhillon', 'Shubh', 'Sidhu Moose Wala',
+    'Karan Aujla', 'Diljit Dosanjh', 'AP Dhillon', 'Shubh', 'Sidhu Moose Wala', 'Sidhu Moosewala',
     'Amrinder Gill', 'Gur Sidhu', 'Prem Dhillon', 'Nimrat Khaira', 'Gurnam Bhullar',
     'Jass Manak', 'Arjan Dhillon', 'Navaan Sandhu', 'Raf Saperra', 'Jazzy B',
     'Bohemia', 'The PropheC', 'Mankirt Aulakh', 'Tarsem Jassar', 'Jordan Sandhu',
@@ -107,6 +114,7 @@ export const ALBUM_LANGUAGE_MARKERS: Record<string, string[]> = {
   hindi:     ['hindi', 'bollywood', 'filmi', 'hindi version'],
   punjabi:   ['punjabi', 'bhangra', '(punjabi)', '[punjabi]'],
   bengali:   ['bengali', '(bengali)', '[bengali]'],
+  marathi:   ['marathi', '(marathi)', '[marathi]', '- marathi'],
   gujarati:  ['gujarati', '(gujarati)', '[gujarati]'],
   urdu:      ['urdu', '(urdu)'],
   english:   ['english version', 'english mix'],

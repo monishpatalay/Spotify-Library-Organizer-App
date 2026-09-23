@@ -34,7 +34,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-async function apiFetch(
+export async function apiFetch(
   path: string,
   options: RequestInit = {},
   retries = 3

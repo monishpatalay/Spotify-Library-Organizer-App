@@ -1,4 +1,5 @@
 import { Track, ParsedPrompt } from '../types';
+import { apiFetch } from './spotifyApi';
 
 // Same-origin: Vercel serves the API at /api/* in production, and Vite proxies
 // /api to the local Express server in dev (see vite.config.ts).
@@ -6,7 +7,7 @@ const API_BASE = '';
 
 export async function aiParsePrompt(prompt: string): Promise<ParsedPrompt | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/ai/parse-prompt`, {
+    const res = await apiFetch(`${API_BASE}/api/ai/parse-prompt`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt }),
@@ -23,17 +24,28 @@ export interface AIClassification {
   language: string | null;
 }
 
+export interface AIClassifyResult {
+  results: Record<string, AIClassification>;
+  cached: number;
+  classified: number;
+  failed: number;
+}
+
 // Classifies tracks in chunks of 100, reporting progress as each chunk completes.
 // The server caches results by track ID — subsequent calls for the same songs are instant.
 export async function aiClassify(
   tracks: Track[],
   onProgress?: (done: number, total: number, fromCache: number) => void
-): Promise<Record<string, AIClassification>> {
-  if (tracks.length === 0) return {};
+): Promise<AIClassifyResult> {
+  if (tracks.length === 0) {
+    return { results: {}, cached: 0, classified: 0, failed: 0 };
+  }
 
   const CHUNK = 100;
   const all: Record<string, AIClassification> = {};
   let totalCached = 0;
+  let totalClassified = 0;
+  let totalFailed = 0;
 
   for (let i = 0; i < tracks.length; i += CHUNK) {
     const chunk = tracks.slice(i, i + CHUNK);
@@ -50,21 +62,36 @@ export async function aiClassify(
         tags: t.lastfmTags?.slice(0, 8),
       }));
 
-      const res = await fetch(`${API_BASE}/api/ai/classify`, {
+      const res = await apiFetch(`${API_BASE}/api/ai/classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tracks: payload }),
       });
 
-      if (res.ok) {
+      if (res.ok || res.status === 207) {
         const data = await res.json();
         Object.assign(all, data.results ?? {});
         totalCached += data.cached ?? 0;
+        totalClassified += data.classified ?? 0;
+        totalFailed += data.failed ?? 0;
+      } else {
+        totalFailed += chunk.length;
       }
-    } catch { /* skip chunk on network error */ }
+    } catch {
+      totalFailed += chunk.length;
+    }
 
     onProgress?.(Math.min(i + CHUNK, tracks.length), tracks.length, totalCached);
   }
 
-  return all;
+  if (totalClassified === 0 && totalCached === 0 && tracks.length > 0) {
+    throw new Error('AI tagging unavailable');
+  }
+
+  return {
+    results: all,
+    cached: totalCached,
+    classified: totalClassified,
+    failed: totalFailed,
+  };
 }

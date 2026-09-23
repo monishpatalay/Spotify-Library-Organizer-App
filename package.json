@@ -9,7 +9,8 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "install:legacy": "cd backend && npm install && cd ../frontend && npm install",
     "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm start"
+    "dev:frontend": "cd frontend && npm start",
+    "test": "./server/node_modules/.bin/tsx --test tests/regression.test.ts"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -1,6 +1,6 @@
 # Spotify Library Organizer
 
-Turn your messy Spotify Liked Songs into clean, themed playlists with one natural-language prompt — powered by Claude for prompt understanding and AI mood/language classification.
+Turn your messy Spotify Liked Songs into clean, themed playlists with one natural-language prompt — powered by Gemini for prompt understanding and AI mood/language classification.
 
 ## Features
 
@@ -11,8 +11,8 @@ Turn your messy Spotify Liked Songs into clean, themed playlists with one natura
   - `Create a playlist of all Arijit Singh songs called Arijit Hits`
   - `Put songs before 2010 into a playlist called Throwback`
   - `Create playlists for artists with more than 5 liked songs`
-- **AI-powered prompt parsing** — Claude (`claude-haiku-4-5`) turns free-form prompts into structured filters (mood, language, artist, release year, artist frequency, or combined conditions), with a regex-based heuristic parser as an automatic fallback if no Anthropic key is configured
-- **AI mood & language classification** — every track is tagged with one or more moods (`sad`, `happy`, `party`, `chill`, `energetic`, `workout`, `romantic`) and a detected language, using Claude plus Spotify audio features, with results cached to disk so re-scans only classify new songs
+- **AI-powered prompt parsing** — Gemini turns free-form prompts into structured filters (mood, language, artist, release year, artist frequency, or combined conditions), with a regex-based heuristic parser as an automatic fallback if the AI service is unavailable
+- **AI mood & language classification** — every track is tagged with one or more moods (`sad`, `happy`, `party`, `chill`, `energetic`, `workout`, `romantic`) and a detected language, using Gemini plus Spotify audio features, with results cached to disk so re-scans only classify new songs
 - **Language detection fallback** — lyric-based language detection (`franc` + lyrics.ovh) and Last.fm tag lookups augment classification when audio features alone aren't enough
 - **Playlist preview** — review and remove matched tracks before anything is created in Spotify
 - **One-click playlist creation**, with graceful handling of Spotify's Development Mode quota limits (see below)
@@ -23,7 +23,7 @@ Turn your messy Spotify Liked Songs into clean, themed playlists with one natura
 |---|---|
 | Frontend | React 18 + TypeScript + Vite, React Router |
 | Backend | Node.js + Express + TypeScript |
-| AI | Anthropic Claude (`@anthropic-ai/sdk`) for prompt parsing and mood/language classification |
+| AI | Gemini Interactions API (`gemini-3.8-flash`) |
 | Music data | Spotify Web API (OAuth, library, playlists), Last.fm API (tags), lyrics.ovh + `franc` (language detection) |
 
 ## Project Structure
@@ -57,9 +57,9 @@ development — there is one copy of the backend, not two.
 4. Go to **Settings → User Management** and add your Spotify email address (required while the app is in Development Mode)
 5. Copy your **Client ID** and **Client Secret**
 
-### 2. (Optional) Anthropic & Last.fm keys
+### 2. (Optional) Gemini & Last.fm keys
 
-For AI prompt parsing and mood/language classification, get an API key from the [Anthropic Console](https://console.anthropic.com/). For richer genre tagging, get a free API key from [Last.fm](https://www.last.fm/api/account/create). Both are optional — the app falls back to a regex-based parser and skips Last.fm tags if these aren't set.
+For AI prompt parsing and mood/language classification, get an API key from [Google AI Studio](https://aistudio.google.com/apikey). For richer genre tagging, get a free API key from [Last.fm](https://www.last.fm/api/account/create). Both are optional — the app falls back to a regex-based parser and skips Last.fm tags if these aren't set.
 
 ### 3. Environment Variables
 
@@ -77,7 +77,7 @@ FRONTEND_URL=http://localhost:5173
 PORT=3001
 
 # Optional — enables AI prompt parsing + mood/language classification
-ANTHROPIC_API_KEY=your_anthropic_api_key
+GEMINI_API_KEY=your_gemini_api_key
 
 # Optional — enables Last.fm tag lookups for genre/mood classification
 LASTFM_API_KEY=your_lastfm_api_key
@@ -128,7 +128,7 @@ The API reads its configuration from Vercel project environment variables:
 | `SPOTIFY_CLIENT_SECRET` | from the Spotify dashboard |
 | `SPOTIFY_REDIRECT_URI` | `https://spotify.monishpatalay.dev/api/auth/callback` |
 | `FRONTEND_URL` | `https://spotify.monishpatalay.dev` |
-| `ANTHROPIC_API_KEY` | optional |
+| `GEMINI_API_KEY` | optional |
 | `LASTFM_API_KEY` | optional |
 
 The same redirect URI must also be registered in the Spotify Developer

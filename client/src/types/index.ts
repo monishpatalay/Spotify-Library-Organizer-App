@@ -20,8 +20,8 @@ export interface Track {
   audioFeatures?: AudioFeatures;
   lastfmTags?: string[];
   detectedLanguage?: string | null; // from lyrics.ovh + franc ML
-  aiMoods?: string[];               // from Claude — multiple moods per song (primary first)
-  aiLanguage?: string | null;       // from Claude classification
+  aiMoods?: string[];               // from Gemini — multiple moods per song (primary first)
+  aiLanguage?: string | null;       // from Gemini classification
 }
 
 export interface PlaylistPreview {

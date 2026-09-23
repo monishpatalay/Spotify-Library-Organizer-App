@@ -1,4 +1,4 @@
-import { ParsedPrompt } from '../types';
+import { ParsedPrompt, FilterCondition } from '../types';
 
 const MOOD_KEYWORDS: Record<string, string[]> = {
   sad:       ['sad', 'melancholy', 'heartbreak', 'depressing', 'gloomy', 'lonely', 'crying', 'tearful'],
@@ -49,13 +49,15 @@ export function parseUserPrompt(prompt: string): ParsedPrompt {
     /create\s+(?:a\s+)?playlist\s+of\s+all\s+(.+?)\s+songs?\s+called\s+(.+)/i
   );
   if (artistPlaylistMatch) {
+    const rawMatch = prompt.match(/create\s+(?:a\s+)?playlist\s+of\s+all\s+(.+?)\s+songs?\s+called\s+(.+)/i);
+    const rawArtist = rawMatch?.[1]?.trim() ?? artistPlaylistMatch[1].trim();
     const nameRaw = prompt.match(/called\s+(.+)/i)?.[1]?.trim() ?? artistPlaylistMatch[2];
     // Check if the artist token is actually a mood or language
     const mayMood = detectMood(artistPlaylistMatch[1]);
     const mayLang = detectLanguage(artistPlaylistMatch[1]);
     if (mayMood) return { action: 'create', playlistName: toTitleCase(nameRaw), filterType: 'mood', filterValue: mayMood };
     if (mayLang) return { action: 'create', playlistName: toTitleCase(nameRaw), filterType: 'language', filterValue: mayLang };
-    return { action: 'create', playlistName: toTitleCase(nameRaw), filterType: 'artist', filterValue: artistPlaylistMatch[1].trim() };
+    return { action: 'create', playlistName: toTitleCase(nameRaw), filterType: 'artist', filterValue: rawArtist };
   }
 
   // Pattern: "Put all [X] songs into/in a playlist called [name]"
@@ -98,21 +100,58 @@ export function parseUserPrompt(prompt: string): ParsedPrompt {
     return { action: 'create_multiple', playlistName: '', filterType: 'artist_frequency', filterValue: parseInt(artistFreqMatch[1], 10) };
   }
 
-  // Flexible mood: "give me sad songs" / "find all party songs" / "chill songs"
+  // Combined or flexible conditions: mood, language, release year
   const mood = detectMood(lower);
+  const lang = detectLanguage(lower);
+  const afterYear = lower.match(/(?:after|since|from)\s+(\d{4})/i);
+  const beforeYear = lower.match(/(?:before|until|prior\s+to)\s+(\d{4})/i);
+
+  const conditions: FilterCondition[] = [];
+  if (mood) conditions.push({ type: 'mood', value: mood });
+  if (lang) conditions.push({ type: 'language', value: lang });
+  if (afterYear) conditions.push({ type: 'release_year_after', value: parseInt(afterYear[1], 10) });
+  if (beforeYear) conditions.push({ type: 'release_year_before', value: parseInt(beforeYear[1], 10) });
+
+  if (conditions.length >= 2) {
+    const namedMatch = prompt.match(/called\s+(.+)/i) ?? prompt.match(/(?:into|in)\s+(?:a\s+)?(?:playlist\s+(?:called\s+)?)?(.+)/i);
+    const defaultParts: string[] = [];
+    if (mood) defaultParts.push(toTitleCase(mood));
+    if (lang) defaultParts.push(toTitleCase(lang));
+    defaultParts.push('Songs');
+    if (afterYear) defaultParts.push(`After ${afterYear[1]}`);
+    if (beforeYear) defaultParts.push(`Before ${beforeYear[1]}`);
+    const playlistName = namedMatch ? toTitleCase(namedMatch[1].trim()) : defaultParts.join(' ');
+    return {
+      action: 'create',
+      playlistName,
+      filterType: 'combined',
+      filterValue: '',
+      conditions,
+    };
+  }
+
+  // Flexible mood: "give me sad songs" / "find all party songs" / "chill songs"
   if (mood) {
-    // Check for "called [name]" suffix
     const namedMatch = lower.match(/called\s+(.+)/i);
     const name = namedMatch ? toTitleCase(prompt.match(/called\s+(.+)/i)![1].trim()) : MOOD_PLAYLIST_NAMES[mood] ?? `${toTitleCase(mood)} Songs`;
     return { action: 'create', playlistName: name, filterType: 'mood', filterValue: mood };
   }
 
   // Flexible language: "find me all telugu songs" / "english songs" / "give me tamil songs"
-  const lang = detectLanguage(lower);
   if (lang) {
     const namedMatch = prompt.match(/called\s+(.+)/i);
     const name = namedMatch ? toTitleCase(namedMatch[1].trim()) : `${toTitleCase(lang)} Songs`;
     return { action: 'create', playlistName: name, filterType: 'language', filterValue: lang };
+  }
+
+  // Flexible year before
+  if (beforeYear) {
+    return { action: 'create', playlistName: `Songs Before ${beforeYear[1]}`, filterType: 'release_year_before', filterValue: parseInt(beforeYear[1], 10) };
+  }
+
+  // Flexible year after
+  if (afterYear) {
+    return { action: 'create', playlistName: `Songs After ${afterYear[1]}`, filterType: 'release_year_after', filterValue: parseInt(afterYear[1], 10) };
   }
 
   // Fallback: treat as artist filter
