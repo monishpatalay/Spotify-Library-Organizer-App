@@ -10,6 +10,7 @@ import aiRoutes from './routes/ai.js';
 // (see ../[...path].ts) and started by a local dev server (see server/src/index.ts).
 export function createApp() {
   const app = express();
+  app.disable('x-powered-by');
 
   // In production the API is served from the same origin as the SPA, so CORS is
   // only needed for local dev, where Vite runs on :5173 and Express on :3001.

@@ -88,3 +88,17 @@ test('[L10] playlist creation validates name length and track URI format before 
   for (const body of bad) assert.equal((await ctx.app.post('/api/spotify/playlist', { ...body, accessToken: 'tok' }, 'tok')).status, 400, JSON.stringify(body).slice(0, 60));
   assert.equal(ctx.calls.filter((c) => c.url.includes('/playlists')).length, 0, 'nothing is created for invalid input');
 });
+
+test('[L11] API responses do not advertise the framework (x-powered-by)', async () => {
+  assert.equal((await ctx.app.get('/api/health')).headers.get('x-powered-by'), null);
+});
+
+test('[L11] vercel.json sets CSP (with frame-ancestors), nosniff and Referrer-Policy on every path', () => {
+  const cfg = require('../../client/vercel.json');
+  const all = cfg.headers?.find((h: { source: string }) => h.source === '/(.*)');
+  const headers = Object.fromEntries((all?.headers ?? []).map((h: { key: string; value: string }) => [h.key.toLowerCase(), h.value]));
+  assert.match(headers['content-security-policy'] ?? '', /frame-ancestors 'none'/);
+  assert.match(headers['content-security-policy'] ?? '', /script-src 'self'(;|$)/);
+  assert.equal(headers['x-content-type-options'], 'nosniff');
+  assert.ok(headers['referrer-policy']);
+});
