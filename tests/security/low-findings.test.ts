@@ -36,3 +36,9 @@ test('[L4] only the scopes the app uses are requested', async () => {
   const scopes = new URL((await ctx.app.get('/api/auth/login')).headers.get('location')!).searchParams.get('scope')!.split(' ');
   assert.deepEqual(scopes.sort(), ['playlist-modify-private', 'user-library-read', 'user-read-email']);
 });
+
+test('[L5] liked-songs forwards Spotify\'s Retry-After on 429', async () => {
+  ctx.handler = (c) => c.url.includes('/me/tracks') ? { status: 429, body: {}, headers: { 'retry-after': '7' } } : undefined;
+  const res = await ctx.app.get('/api/spotify/liked-songs', 'tok');
+  assert.equal(res.headers.get('retry-after'), '7');
+});

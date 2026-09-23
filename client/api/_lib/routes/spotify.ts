@@ -5,6 +5,14 @@ import { asyncRoute } from '../utils/asyncRoute.js';
 
 const router = Router();
 
+// Pass Spotify's status (and its Retry-After on 429) through to the client.
+function sendSpotifyError(res: Response, err: any) {
+  const status = err?.response?.status ?? 500;
+  const retryAfter = err?.response?.headers?.['retry-after'];
+  if (retryAfter) res.set('Retry-After', String(retryAfter));
+  res.status(status).json({ error: err?.response?.data ?? err.message });
+}
+
 // GET /api/spotify/me
 router.get('/me', extractToken, asyncRoute(async (req: Request, res: Response) => {
   const token = (req as any).accessToken as string;
@@ -13,10 +21,7 @@ router.get('/me', extractToken, asyncRoute(async (req: Request, res: Response) =
     const { data } = await client.get('/me');
     res.json(data);
   } catch (err: any) {
-    const status = err?.response?.status ?? 500;
-    const retryAfter = err?.response?.headers?.['retry-after'];
-    if (retryAfter) res.set('Retry-After', String(retryAfter));
-    res.status(status).json({ error: err?.response?.data ?? err.message });
+    sendSpotifyError(res, err);
   }
 }));
 
@@ -31,8 +36,7 @@ router.get('/liked-songs', extractToken, asyncRoute(async (req: Request, res: Re
     const { data } = await client.get('/me/tracks', { params: { limit, offset } });
     res.json(data);
   } catch (err: any) {
-    const status = err?.response?.status ?? 500;
-    res.status(status).json({ error: err?.response?.data ?? err.message });
+    sendSpotifyError(res, err);
   }
 }));
 
