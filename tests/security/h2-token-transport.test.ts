@@ -6,7 +6,7 @@ import { useTestApp } from '../helpers/mockHttp';
 
 const ctx = useTestApp();
 const tokenOk = (c: { url: string }) => c.url.includes('/api/token')
-  ? { status: 200, body: { access_token: 'AT-secret', refresh_token: 'RT-secret', expires_in: 3600 } } : undefined;
+  ? { status: 200, body: { access_token: 'user:alice-AT-secret', refresh_token: 'RT-secret', expires_in: 3600 } } : undefined;
 
 test('[H2] the callback redirect carries no refresh token and no token in the query string', async () => {
   ctx.handler = tokenOk;
@@ -30,7 +30,7 @@ test('[H2] refresh reads the cookie and ignores a refresh token sent in the body
   ctx.handler = (c) => {
     if (!c.url.includes('/api/token')) return undefined;
     sent.push(new URLSearchParams(c.body as string).get('refresh_token') ?? '');
-    return { status: 200, body: { access_token: 'NEW', expires_in: 3600 } };
+    return { status: 200, body: { access_token: 'user:alice', expires_in: 3600 } };
   };
   const fromBody = await ctx.app.post('/api/auth/refresh', { refresh_token: 'stolen' });
   assert.equal(fromBody.status, 401);

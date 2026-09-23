@@ -128,18 +128,25 @@ export async function startApp() {
   const server: Server = createApp().listen(0, '127.0.0.1');
   await once(server, 'listening');
   const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+  // A "user:<id>" token stands for someone who logged in through the app: send it
+  // as the Bearer token plus the signed session cookie the callback would have set.
+  const { signSession } = require('../../client/api/_lib/utils/session.ts');
+  const auth = (token?: string): Record<string, string> => ({
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(token?.startsWith('user:') ? { Cookie: `sp_session=${signSession(token.slice(5))}` } : {}),
+  });
   return {
     base,
     close: () => new Promise<void>((r) => server.close(() => r())),
     post: (path: string, body: unknown, token?: string) => realFetch(base + path, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers: { 'Content-Type': 'application/json', ...auth(token) },
       body: typeof body === 'string' ? body : JSON.stringify(body),
       redirect: 'manual',
       signal: AbortSignal.timeout(5000),
     }),
     get: (path: string, token?: string) => realFetch(base + path, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: auth(token),
       redirect: 'manual',
       signal: AbortSignal.timeout(5000),
     }),

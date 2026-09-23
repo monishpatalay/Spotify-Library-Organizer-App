@@ -377,7 +377,10 @@ router.post('/classify', asyncRoute(async (req: Request, res: Response) => {
   if (tracks.some((track) => !track
     || typeof track.id !== 'string' || track.id.length === 0 || track.id.length > 128
     || typeof track.name !== 'string' || track.name.length > 300
-    || typeof track.artist !== 'string' || track.artist.length > 300)) {
+    || typeof track.artist !== 'string' || track.artist.length > 300
+    || (track.album !== undefined && (typeof track.album !== 'string' || track.album.length > 300))
+    || (track.tags !== undefined && (!Array.isArray(track.tags) || track.tags.length > 10
+      || track.tags.some((tag) => typeof tag !== 'string' || tag.length > 50))))) {
     res.status(400).json({ error: 'invalid track data' });
     return;
   }

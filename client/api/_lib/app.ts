@@ -15,7 +15,7 @@ export function createApp() {
   // only needed for local dev, where Vite runs on :5173 and Express on :3001.
   app.use(cors({
     origin: [
-      process.env.FRONTEND_URL ?? 'http://localhost:5173',
+      process.env.FRONTEND_URL ?? 'http://127.0.0.1:5173',
       'http://localhost:5173',
       'http://127.0.0.1:5173',
     ],

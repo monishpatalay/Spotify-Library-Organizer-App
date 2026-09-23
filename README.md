@@ -73,7 +73,7 @@ Edit `server/.env`:
 SPOTIFY_CLIENT_ID=your_client_id_here
 SPOTIFY_CLIENT_SECRET=your_client_secret_here
 SPOTIFY_REDIRECT_URI=http://127.0.0.1:3001/api/auth/callback
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://127.0.0.1:5173
 PORT=3001
 
 # Optional — enables AI prompt parsing + mood/language classification
@@ -112,7 +112,7 @@ Or run both with one command (requires `concurrently`):
 npm run dev
 ```
 
-Then open [http://localhost:5173](http://localhost:5173) in your browser.
+Then open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser (use 127.0.0.1, not localhost: the login cookies are set for 127.0.0.1, the host Spotify redirects back to).
 
 ## Deployment
 

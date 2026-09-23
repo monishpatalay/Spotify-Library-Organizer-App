@@ -59,7 +59,7 @@ test('callback with ?error redirects back to the landing page with the error', a
 
 test('callback exchanges the code server-side with the client secret', async () => {
   handler = (c) => c.url === 'https://accounts.spotify.com/api/token'
-    ? { status: 200, body: { access_token: 'AT', refresh_token: 'RT', expires_in: 3600 } } : undefined;
+    ? { status: 200, body: { access_token: 'user:alice', refresh_token: 'RT', expires_in: 3600 } } : undefined;
   const res = await app.get('/api/auth/callback?code=abc');
   const tokenCall = http.calls.find((c) => c.url.includes('/api/token'))!;
   const form = new URLSearchParams(tokenCall.body as string);
@@ -81,9 +81,9 @@ test('refresh: 401 without the cookie, 401 when Spotify rejects it, new token on
   assert.equal((await refresh()).status, 401);
   handler = () => ({ status: 400, body: { error: 'invalid_grant' } });
   assert.equal((await refresh('sp_refresh=bad')).status, 401);
-  handler = () => ({ status: 200, body: { access_token: 'NEW', expires_in: 3600 } });
+  handler = (c) => c.url.includes('/api/token') ? { status: 200, body: { access_token: 'user:alice', expires_in: 3600 } } : undefined;
   const res = await refresh('sp_refresh=good');
-  assert.deepEqual(await res.json(), { access_token: 'NEW', expires_in: 3600 });
+  assert.deepEqual(await res.json(), { access_token: 'user:alice', expires_in: 3600 });
 });
 
 // ─── Spotify proxy ────────────────────────────────────────────────────────────

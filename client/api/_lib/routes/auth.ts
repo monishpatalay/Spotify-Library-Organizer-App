@@ -2,11 +2,19 @@ import { Router, Request, Response } from 'express';
 import axios from 'axios';
 import { asyncRoute } from '../utils/asyncRoute.js';
 import { readCookie, cookieOptions } from '../utils/cookies.js';
+import { SESSION_COOKIE, SESSION_MAX_AGE, signSession } from '../utils/session.js';
+import { createSpotifyClient } from '../utils/spotifyClient.js';
 
 const router = Router();
 
 const REFRESH_COOKIE = 'sp_refresh';
 const REFRESH_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days, then log in again
+
+// Signed proof that this Spotify user logged in through this app (see utils/session.ts).
+async function issueSession(res: Response, accessToken: string) {
+  const { data } = await createSpotifyClient(accessToken).get('/me');
+  res.cookie(SESSION_COOKIE, signSession(data.id), cookieOptions('/api', SESSION_MAX_AGE));
+}
 
 const SCOPES = [
   'user-library-read',
@@ -21,7 +29,7 @@ function cfg() {
     clientId: process.env.SPOTIFY_CLIENT_ID!,
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
     redirectUri: process.env.SPOTIFY_REDIRECT_URI ?? 'http://127.0.0.1:3001/api/auth/callback',
-    frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+    frontendUrl: process.env.FRONTEND_URL ?? 'http://127.0.0.1:5173',
   };
 }
 
@@ -71,6 +79,7 @@ router.get('/callback', asyncRoute(async (req: Request, res: Response) => {
     console.log('Token exchange — SUCCESS | has_token:', !!access_token, '| has_refresh:', !!refresh_token);
     // The long-lived refresh token stays in an HttpOnly cookie. The short-lived
     // access token goes in the URL fragment, which browsers never send to a server.
+    await issueSession(res, access_token);
     if (refresh_token) res.cookie(REFRESH_COOKIE, refresh_token, cookieOptions('/api/auth', REFRESH_MAX_AGE));
     const params = new URLSearchParams({ access_token, expires_in: String(expires_in) });
     res.redirect(`${frontendUrl}/callback#${params.toString()}`);
@@ -104,6 +113,7 @@ router.post('/refresh', asyncRoute(async (req: Request, res: Response) => {
     );
 
     const { access_token, expires_in, refresh_token: rotated } = tokenRes.data;
+    await issueSession(res, access_token);
     if (rotated) res.cookie(REFRESH_COOKIE, rotated, cookieOptions('/api/auth', REFRESH_MAX_AGE));
     res.json({ access_token, expires_in });
   } catch (err: any) {
@@ -115,6 +125,7 @@ router.post('/refresh', asyncRoute(async (req: Request, res: Response) => {
 // POST /api/auth/logout
 router.post('/logout', (_req: Request, res: Response) => {
   res.clearCookie(REFRESH_COOKIE, cookieOptions('/api/auth'));
+  res.clearCookie(SESSION_COOKIE, cookieOptions('/api'));
   res.status(204).end();
 });
 

@@ -50,12 +50,13 @@ export async function aiClassify(
   for (let i = 0; i < tracks.length; i += CHUNK) {
     const chunk = tracks.slice(i, i + CHUNK);
     try {
+      // Trimmed to the server's limits so one long title can't get the whole chunk rejected.
       const payload = chunk.map((t) => ({
         id: t.id,
-        name: t.name,
-        artist: t.artists[0] ?? '',
-        album: t.album,
-        tags: t.lastfmTags?.slice(0, 8),
+        name: t.name.slice(0, 300),
+        artist: (t.artists[0] ?? '').slice(0, 300),
+        album: t.album.slice(0, 300),
+        tags: t.lastfmTags?.filter((tag) => tag.length <= 50).slice(0, 8),
       }));
 
       const res = await apiFetch(`${API_BASE}/api/ai/classify`, {
