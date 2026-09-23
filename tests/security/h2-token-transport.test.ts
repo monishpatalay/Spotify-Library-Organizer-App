@@ -10,7 +10,7 @@ const tokenOk = (c: { url: string }) => c.url.includes('/api/token')
 
 test('[H2] the callback redirect carries no refresh token and no token in the query string', async () => {
   ctx.handler = tokenOk;
-  const res = await ctx.app.get('/api/auth/callback?code=abc');
+  const res = await ctx.app.login('abc');
   const location = new URL(res.headers.get('location') ?? '');
   assert.ok(!location.href.includes('RT-secret'), 'refresh token leaked in redirect');
   assert.ok(!location.search.includes('AT-secret'), 'access token in the query string (sent to servers and logs)');
@@ -18,7 +18,7 @@ test('[H2] the callback redirect carries no refresh token and no token in the qu
 
 test('[H2] the refresh token is set as an HttpOnly cookie scoped to /api/auth', async () => {
   ctx.handler = tokenOk;
-  const res = await ctx.app.get('/api/auth/callback?code=abc');
+  const res = await ctx.app.login('abc');
   const cookie = res.headers.getSetCookie().find((c) => c.includes('RT-secret')) ?? '';
   assert.match(cookie, /HttpOnly/i);
   assert.match(cookie, /Path=\/api\/auth/i);

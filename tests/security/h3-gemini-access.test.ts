@@ -33,7 +33,7 @@ test('[H3] a forged or tampered session cookie is rejected', async () => {
 
 test('[H3] logging in through the callback issues an HttpOnly session cookie', async () => {
   ctx.handler = (c) => c.url.includes('/api/token') ? { status: 200, body: { access_token: 'user:alice', refresh_token: 'RT', expires_in: 3600 } } : undefined;
-  const res = await ctx.app.get('/api/auth/callback?code=abc');
+  const res = await ctx.app.login('abc');
   const session = res.headers.getSetCookie().find((c) => c.startsWith('sp_session=')) ?? '';
   assert.match(session, /HttpOnly/i);
   assert.match(session, /Path=\/api/i);

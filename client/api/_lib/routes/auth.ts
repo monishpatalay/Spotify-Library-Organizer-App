@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
+import { randomBytes } from 'crypto';
 import { asyncRoute } from '../utils/asyncRoute.js';
 import { readCookie, cookieOptions } from '../utils/cookies.js';
 import { SESSION_COOKIE, SESSION_MAX_AGE, signSession } from '../utils/session.js';
@@ -9,6 +10,8 @@ const router = Router();
 
 const REFRESH_COOKIE = 'sp_refresh';
 const REFRESH_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days, then log in again
+const STATE_COOKIE = 'sp_oauth_state';
+const STATE_MAX_AGE = 10 * 60 * 1000; // time allowed on Spotify's consent screen
 
 // Signed proof that this Spotify user logged in through this app (see utils/session.ts).
 async function issueSession(res: Response, accessToken: string) {
@@ -38,11 +41,17 @@ router.get('/login', (_req: Request, res: Response) => {
   const { clientId, redirectUri } = cfg();
   console.log('Login — clientId:', clientId, '| redirectUri:', redirectUri);
 
+  // One-time state, checked on the callback so nobody can complete a login the
+  // user's own browser didn't start (login CSRF).
+  const state = randomBytes(32).toString('hex');
+  res.cookie(STATE_COOKIE, state, cookieOptions('/api/auth', STATE_MAX_AGE));
+
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: SCOPES,
+    state,
     show_dialog: 'true',
   });
   res.redirect(`https://accounts.spotify.com/authorize?${params.toString()}`);
@@ -56,8 +65,15 @@ router.get('/callback', asyncRoute(async (req: Request, res: Response) => {
 
   console.log('Callback — error:', error, '| code:', code ? 'present' : 'missing', '| query:', req.query);
 
+  const expectedState = readCookie(req, STATE_COOKIE);
+  res.clearCookie(STATE_COOKIE, cookieOptions('/api/auth'));
+
   if (error || !code) {
     res.redirect(`${frontendUrl}/?error=${encodeURIComponent(error ?? 'no_code')}`);
+    return;
+  }
+  if (!expectedState || req.query.state !== expectedState) {
+    res.redirect(`${frontendUrl}/?error=state_mismatch`);
     return;
   }
 

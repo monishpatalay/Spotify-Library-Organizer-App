@@ -60,7 +60,7 @@ test('callback with ?error redirects back to the landing page with the error', a
 test('callback exchanges the code server-side with the client secret', async () => {
   handler = (c) => c.url === 'https://accounts.spotify.com/api/token'
     ? { status: 200, body: { access_token: 'user:alice', refresh_token: 'RT', expires_in: 3600 } } : undefined;
-  const res = await app.get('/api/auth/callback?code=abc');
+  const res = await app.login('abc');
   const tokenCall = http.calls.find((c) => c.url.includes('/api/token'))!;
   const form = new URLSearchParams(tokenCall.body as string);
   assert.equal(form.get('grant_type'), 'authorization_code');
@@ -71,7 +71,7 @@ test('callback exchanges the code server-side with the client secret', async () 
 
 test('callback with a rejected code redirects with an error instead of crashing', async () => {
   handler = (c) => c.url.includes('/api/token') ? { status: 400, body: { error: 'invalid_grant' } } : undefined;
-  const res = await app.get('/api/auth/callback?code=bad');
+  const res = await app.login('bad');
   assert.equal(res.status, 302);
   assert.match(res.headers.get('location')!, /^http:\/\/localhost:5173\/\?error=/);
 });

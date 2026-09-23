@@ -150,5 +150,14 @@ export async function startApp() {
       redirect: 'manual',
       signal: AbortSignal.timeout(5000),
     }),
+    // Full OAuth round trip: /login (sets the state cookie) then /callback with that state.
+    login: async (code: string) => {
+      const login = await realFetch(`${base}/api/auth/login`, { redirect: 'manual' });
+      const state = new URL(login.headers.get('location')!).searchParams.get('state') ?? '';
+      const cookie = (login.headers.getSetCookie().find((c) => c.startsWith('sp_oauth_state=')) ?? '').split(';')[0];
+      return realFetch(`${base}/api/auth/callback?code=${encodeURIComponent(code)}&state=${state}`, {
+        headers: { Cookie: cookie }, redirect: 'manual', signal: AbortSignal.timeout(5000),
+      });
+    },
   };
 }
