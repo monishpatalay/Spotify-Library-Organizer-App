@@ -103,8 +103,7 @@ router.get('/callback', asyncRoute(async (req: Request, res: Response) => {
   } catch (err: any) {
     const spotifyError = err?.response?.data;
     console.error('Token exchange — FAILED:', spotifyError?.error ?? err.message);
-    const msg = encodeURIComponent(JSON.stringify(spotifyError ?? err.message));
-    res.redirect(`${frontendUrl}/?error=${msg}`);
+    res.redirect(`${frontendUrl}/?error=login_failed`);
   }
 }));
 

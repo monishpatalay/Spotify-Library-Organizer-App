@@ -27,8 +27,17 @@ const MOOD_PILLS = [
   { label: 'workout', color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
 ];
 
+// ?error= is set by our own redirects, but anyone can craft a link with it, so
+// only fixed messages are ever shown (never the raw parameter).
+const ERROR_MESSAGES: Record<string, string> = {
+  access_denied: 'You cancelled the Spotify login.',
+  session_expired: 'Your session expired. Please log in again.',
+  state_mismatch: 'That login attempt didn’t start here. Please try again.',
+};
+
 export default function LandingPage() {
   const urlError = new URLSearchParams(window.location.search).get('error');
+  const errorMessage = urlError && (ERROR_MESSAGES[urlError] ?? 'We couldn’t log you in to Spotify. Please try again.');
 
   return (
     <div style={s.page}>
@@ -75,10 +84,10 @@ export default function LandingPage() {
           Connect with Spotify
         </button>
 
-        {urlError && (
+        {errorMessage && (
           <div style={s.errorBox}>
             <p style={{ color: '#f87171', fontSize: 13, fontWeight: 700, margin: '0 0 4px' }}>⚠️ Authentication failed</p>
-            <p style={{ color: '#ef4444', fontSize: 12, margin: 0, wordBreak: 'break-all', lineHeight: 1.5 }}>{decodeURIComponent(urlError)}</p>
+            <p style={{ color: '#ef4444', fontSize: 12, margin: 0, lineHeight: 1.5 }}>{errorMessage}</p>
           </div>
         )}
 
