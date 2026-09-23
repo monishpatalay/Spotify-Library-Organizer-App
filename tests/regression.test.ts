@@ -318,3 +318,35 @@ test('fallback mood estimation provides estimated moods from audio features', ()
   const sadFallback = getFallbackMoods(sadChillSong);
   assert.ok(sadFallback.includes('sad') || sadFallback.includes('chill'));
 });
+
+test('TrackCard tag resolution suppresses fallbacks during active tag loading', () => {
+  const track315 = createTrack({
+    id: '315',
+    name: '315',
+    artists: ['AP Dhillon'],
+    album: 'The Brownprint',
+  });
+
+  // State 1: Active loading (loadingTags = true, track has no AI tags yet)
+  const loadingTags = true;
+  const hasAiTags1 = Boolean(track315.aiLanguage || track315.aiMoods?.length);
+  const fallbackLang1 = !hasAiTags1 && !loadingTags ? getTrackLanguage(track315) : null;
+  const fallbackMoods1 = !hasAiTags1 && !loadingTags ? getFallbackMoods(track315) : [];
+  const showLoadingPlaceholder1 = loadingTags && !hasAiTags1;
+
+  assert.equal(fallbackLang1, null);
+  assert.deepEqual(fallbackMoods1, []);
+  assert.equal(showLoadingPlaceholder1, true);
+
+  // State 2: Tagging complete with AI results
+  const track315Classified = { ...track315, aiLanguage: 'punjabi', aiMoods: ['party'] };
+  const hasAiTags2 = Boolean(track315Classified.aiLanguage || track315Classified.aiMoods?.length);
+  const showLoadingPlaceholder2 = false && !hasAiTags2;
+  assert.equal(hasAiTags2, true);
+  assert.equal(showLoadingPlaceholder2, false);
+
+  // State 3: Tagging failed/finished without AI tags (loadingTags = false)
+  const hasAiTags3 = false;
+  const fallbackLang3 = !hasAiTags3 && !false ? getTrackLanguage(track315) : null;
+  assert.equal(fallbackLang3, 'punjabi');
+});

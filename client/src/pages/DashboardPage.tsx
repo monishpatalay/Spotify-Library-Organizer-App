@@ -232,7 +232,7 @@ export default function DashboardPage() {
             </div>
             <div style={styles.trackGrid}>
               {recentTracks.map((t) => (
-                <TrackCard key={t.id} track={t} />
+                <TrackCard key={t.id} track={t} loadingTags={moodLoading} />
               ))}
             </div>
           </section>
@@ -472,32 +472,16 @@ const styles: Record<string, React.CSSProperties> = {
   disabledNote: { color: 'var(--text-muted)', fontSize: 13, marginTop: 10 },
 
   errorBanner: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    background: 'rgba(255,183,0,0.06)',
-    border: '1px solid rgba(255,183,0,0.18)',
-    borderRadius: 12,
-    padding: '10px 16px',
-    marginBottom: 24,
-    fontSize: 13,
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+    background: 'rgba(255,183,0,0.06)', border: '1px solid rgba(255,183,0,0.18)',
+    borderRadius: 12, padding: '10px 16px', marginBottom: 24, fontSize: 13,
   },
   bannerBtn: {
-    background: 'transparent',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: 'var(--text-dim)',
-    borderRadius: 12,
-    padding: '3px 12px',
-    fontSize: 12,
-    cursor: 'pointer',
+    background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
+    color: 'var(--text-dim)', borderRadius: 12, padding: '3px 12px', fontSize: 12, cursor: 'pointer',
   },
   bannerClose: {
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--text-muted)',
-    fontSize: 14,
-    cursor: 'pointer',
-    padding: '2px 4px',
+    background: 'transparent', border: 'none', color: 'var(--text-muted)',
+    fontSize: 14, cursor: 'pointer', padding: '2px 4px',
   },
 };

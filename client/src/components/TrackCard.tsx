@@ -2,7 +2,11 @@ import React from 'react';
 import { Track } from '../types';
 import { getTrackLanguage, getFallbackMoods } from '../utils/filterSongs';
 
-interface TrackCardProps { track: Track; onRemove?: () => void; }
+interface TrackCardProps {
+  track: Track;
+  onRemove?: () => void;
+  loadingTags?: boolean;
+}
 
 const MOOD_COLORS: Record<string, { color: string; bg: string }> = {
   sad:       { color: '#818cf8', bg: 'rgba(129,140,248,0.12)' },
@@ -15,13 +19,14 @@ const MOOD_COLORS: Record<string, { color: string; bg: string }> = {
 };
 const DEFAULT_MOOD = { color: '#a855f7', bg: 'rgba(168,85,247,0.12)' };
 
-export default function TrackCard({ track, onRemove }: TrackCardProps) {
+export default function TrackCard({ track, onRemove, loadingTags }: TrackCardProps) {
   const year = track.releaseDate?.slice(0, 4) ?? '';
   const aiLang = track.aiLanguage;
-  const fallbackLang = !aiLang ? getTrackLanguage(track) : null;
   const aiMoods = track.aiMoods && track.aiMoods.length > 0 ? track.aiMoods : null;
-  const fallbackMoods = !aiMoods ? getFallbackMoods(track) : [];
-  const hasAnyTags = Boolean(aiLang || fallbackLang || (aiMoods && aiMoods.length > 0) || fallbackMoods.length > 0);
+  const hasAiTags = Boolean(aiLang || aiMoods);
+  const fallbackLang = !hasAiTags && !loadingTags ? getTrackLanguage(track) : null;
+  const fallbackMoods = !hasAiTags && !loadingTags ? getFallbackMoods(track) : [];
+  const hasAnyTags = Boolean(aiLang || fallbackLang || aiMoods || fallbackMoods.length > 0);
 
   return (
     <div style={s.card} className="track-card glass">
@@ -41,36 +46,44 @@ export default function TrackCard({ track, onRemove }: TrackCardProps) {
         <p style={s.artists}>{track.artists.join(', ')}</p>
         <p style={s.album}>{track.album}{year ? ` · ${year}` : ''}</p>
         <div style={s.tags}>
-          {aiLang && (
-            <span style={{ ...s.tag, color: '#1DB954', background: 'rgba(29,185,84,0.1)', border: '1px solid rgba(29,185,84,0.2)' }}>
-              {aiLang}
+          {loadingTags && !hasAiTags ? (
+            <span style={s.loadingTag}>
+              Tags are loading, please wait…
             </span>
-          )}
-          {!aiLang && fallbackLang && (
-            <span style={{ ...s.tag, color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px dashed rgba(52,211,153,0.3)' }} title="Estimated fallback language">
-              {fallbackLang} <span style={{ fontSize: 9, opacity: 0.7 }}>(est.)</span>
-            </span>
-          )}
-          {aiMoods?.map((mood) => {
-            const mc = MOOD_COLORS[mood] ?? DEFAULT_MOOD;
-            return (
-              <span key={mood} style={{ ...s.tag, color: mc.color, background: mc.bg, border: `1px solid ${mc.color}30` }}>
-                {mood}
-              </span>
-            );
-          })}
-          {!aiMoods && fallbackMoods.map((mood) => {
-            const mc = MOOD_COLORS[mood] ?? DEFAULT_MOOD;
-            return (
-              <span key={mood} style={{ ...s.tag, color: mc.color, background: mc.bg, border: `1px dashed ${mc.color}40` }} title="Estimated fallback mood">
-                {mood} <span style={{ fontSize: 9, opacity: 0.7 }}>(est.)</span>
-              </span>
-            );
-          })}
-          {!hasAnyTags && (
-            <span style={{ ...s.tag, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              Tags unavailable
-            </span>
+          ) : (
+            <>
+              {aiLang && (
+                <span style={{ ...s.tag, color: '#1DB954', background: 'rgba(29,185,84,0.1)', border: '1px solid rgba(29,185,84,0.2)' }}>
+                  {aiLang}
+                </span>
+              )}
+              {!aiLang && fallbackLang && (
+                <span style={{ ...s.tag, color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px dashed rgba(52,211,153,0.3)' }} title="Estimated fallback language">
+                  {fallbackLang} <span style={{ fontSize: 9, opacity: 0.7 }}>(est.)</span>
+                </span>
+              )}
+              {aiMoods?.map((mood) => {
+                const mc = MOOD_COLORS[mood] ?? DEFAULT_MOOD;
+                return (
+                  <span key={mood} style={{ ...s.tag, color: mc.color, background: mc.bg, border: `1px solid ${mc.color}30` }}>
+                    {mood}
+                  </span>
+                );
+              })}
+              {!aiMoods && fallbackMoods.map((mood) => {
+                const mc = MOOD_COLORS[mood] ?? DEFAULT_MOOD;
+                return (
+                  <span key={mood} style={{ ...s.tag, color: mc.color, background: mc.bg, border: `1px dashed ${mc.color}40` }} title="Estimated fallback mood">
+                    {mood} <span style={{ fontSize: 9, opacity: 0.7 }}>(est.)</span>
+                  </span>
+                );
+              })}
+              {!hasAnyTags && (
+                <span style={{ ...s.tag, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  Tags unavailable
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -110,6 +123,12 @@ const s: Record<string, React.CSSProperties> = {
   tag: {
     fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 10,
     letterSpacing: '0.2px', textTransform: 'capitalize',
+  },
+  loadingTag: {
+    fontSize: 10, fontWeight: 500, padding: '2px 8px', borderRadius: 10,
+    color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)', textTransform: 'none',
+    letterSpacing: '0.2px', fontStyle: 'italic',
   },
   removeBtn: {
     background: 'transparent', border: '1px solid transparent',
